@@ -1,5 +1,6 @@
 *.m~
 *.asv
++scnc/+config/config.mat
 +scnc/+config/default.mat
 stimuli/
 data/
