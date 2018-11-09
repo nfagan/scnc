@@ -36,6 +36,8 @@ catch err
   throw( err );
 end
 
+shared_utils.io.require_dir( opts.PATHS.data );
+
 %   SCREEN
 [windex, wrect] = Screen( 'OpenWindow', SCREEN.index, SCREEN.background_color, SCREEN.rect );
 
@@ -45,7 +47,9 @@ WINDOW.index = windex;
 WINDOW.rect = wrect;
 
 %   TRACKER
-TRACKER = EyeTracker( '', cd, WINDOW.index );
+edf_filename = get_edf_filename( opts.PATHS.data, 'sc' );
+
+TRACKER = EyeTracker( edf_filename, opts.PATHS.data, WINDOW.index );
 TRACKER.bypass = opts.INTERFACE.use_mouse;
 TRACKER.init();
 
@@ -53,8 +57,10 @@ TRACKER.init();
 TIMER = Timer();
 TIMER.register( opts.TIMINGS.time_in );
 
-image_path = fullfile( scnc.util.get_project_folder(), 'stimuli', 'active' );
-image_info = get_images( image_path, opts.INTERFACE.is_debug, 4 );
+stimuli_p = fullfile( scnc.util.get_project_folder(), 'stimuli' );
+
+image_p = fullfile( stimuli_p, 'images' );
+image_info = get_images( image_p, opts.INTERFACE.is_debug, 4 );
 
 %   STIMULI
 stim_fs = fieldnames( STIMULI.setup );
@@ -80,8 +86,16 @@ for i = 1:numel(stim_fs)
   STIMULI.(stim_fs{i}) = stim_;
 end
 
+%   SOUNDS
+sounds = get_sounds( fullfile(stimuli_p, 'sounds') );
+
 %   SERIAL
-comm = serial_comm.SerialManager( SERIAL.port, struct(), SERIAL.channels );
+if ( opts.INTERFACE.use_brains_arduino )
+  comm = brains.arduino.get_serial_comm();
+else
+  comm = serial_comm.SerialManager( SERIAL.port, struct(), SERIAL.channels );
+end
+
 comm.bypass = ~opts.INTERFACE.use_reward;
 comm.start();
 SERIAL.comm = comm;
@@ -93,6 +107,29 @@ opts.TRACKER = TRACKER;
 opts.TIMER = TIMER;
 opts.SERIAL = SERIAL;
 opts.IMAGES = image_info;
+opts.SOUNDS = sounds;
+
+end
+
+function sound_info = get_sounds(sound_p)
+
+sound_info = struct();
+sound_info.correct = get_sound( fullfile(sound_p, 'correct') );
+sound_info.incorrect = get_sound( fullfile(sound_p, 'incorrect') );
+
+end
+
+function sound_info = get_sound(p)
+
+files = shared_utils.io.find( p, {'.wav', '.mp3'} );
+
+assert( numel(files) > 0, 'No sound files found in: "%s".', p );
+
+file = files{1};
+
+[read_sound, fs] = audioread( file );
+
+sound_info = struct( 'sound', read_sound, 'fs', fs );
 
 end
 
@@ -183,5 +220,17 @@ assert( all(isfield(structure, req_fields)) ...
   , strjoin(req_fields, ', ') );
 
 validatestring( structure.trial_type, {'congruent', 'incongruent'} );
+
+end
+
+function fname = get_edf_filename(path, prefix)
+
+does_exist = true;
+stp = 1;
+
+while ( does_exist )
+  fname = sprintf( '%s%d', prefix, stp );
+  does_exist = shared_utils.io.fexists( fullfile(path, fname) );
+end
 
 end

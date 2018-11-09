@@ -21,11 +21,12 @@ conf.(const.config_id) = true;
 % META
 META = struct();
 META.subject = '';
-META.date = '';
+META.notes = '';
 
 % PATHS
 PATHS = struct();
 PATHS.repositories = fileparts( scnc.util.get_project_folder() );
+PATHS.data = fullfile( scnc.util.get_project_folder(), 'data' );
 
 % DEPENDENCIES
 DEPENDS = struct();
@@ -36,7 +37,10 @@ INTERFACE = struct();
 INTERFACE.stop_key = KbName( 'escape' );
 INTERFACE.use_mouse = true;
 INTERFACE.use_reward = false;
+INTERFACE.use_brains_arduino = false;
 INTERFACE.is_debug = true;
+INTERFACE.use_sounds = true;
+INTERFACE.save = true;
 INTERFACE.debug_tags = 'all';
 INTERFACE.gui_fields.exclude = { 'stop_key', 'debug_tags' };
 
@@ -45,6 +49,7 @@ STRUCTURE = struct();
 STRUCTURE.trial_type = 'congruent';
 STRUCTURE.is_masked = 0;
 STRUCTURE.is_two_targets = 1;
+STRUCTURE.block_size = 6;
 
 %	SCREEN
 SCREEN = struct();
@@ -81,7 +86,7 @@ STIMULI.setup.fix_square = struct( ...
   , 'placement',        'center' ...
   , 'has_target',       true ...
   , 'target_duration',  0.3 ...
-  , 'target_padding',   50 ...
+  , 'target_padding',   0 ...
   , 'non_editable',     non_editable_properties ...
 );
 
@@ -93,7 +98,7 @@ STIMULI.setup.left_image1 =  struct( ...
   , 'placement',        'center-left' ...
   , 'has_target',       true ...
   , 'target_duration',  0.3 ...
-  , 'target_padding',   50 ...
+  , 'target_padding',   0 ...
   , 'non_editable',     non_editable_properties ...
 );
 
@@ -105,7 +110,7 @@ STIMULI.setup.right_image1 =  struct( ...
   , 'placement',        'center-right' ...
   , 'has_target',       true ...
   , 'target_duration',  0.3 ...
-  , 'target_padding',   50 ...
+  , 'target_padding',   0 ...
   , 'non_editable',     non_editable_properties ...
 );
 
@@ -113,11 +118,13 @@ STIMULI.setup.right_image1 =  struct( ...
 SERIAL = struct();
 SERIAL.port = 'COM3';
 SERIAL.channels = { 'A' };
+SERIAL.gui_fields.include = { 'port' };
 
 % REWARDS
 REWARDS = struct();
 REWARDS.key_press = 100;
 REWARDS.main = 100;
+REWARDS.bridge = 50;
 
 % EXPORT
 conf.PATHS = PATHS;

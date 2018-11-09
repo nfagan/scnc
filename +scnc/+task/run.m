@@ -13,6 +13,9 @@ TRACKER =     opts.TRACKER;
 WINDOW =      opts.WINDOW;
 STRUCTURE =   opts.STRUCTURE;
 IMAGES =      opts.IMAGES;
+SOUNDS =      opts.SOUNDS;
+REWARDS =     opts.REWARDS;
+comm =        opts.SERIAL.comm;
 
 tracker_sync = struct();
 tracker_sync.timer = NaN;
@@ -29,6 +32,17 @@ stim_handles = rmfield( STIMULI, 'setup' );
 trial_type = STRUCTURE.trial_type;
 is_masked = STRUCTURE.is_masked;
 is_two_targets = STRUCTURE.is_two_targets;
+
+BLOCK_INDEX = 0;
+TRIAL_NUMBER = 0;
+
+DATA = struct();
+events = struct();
+errors = struct();
+
+DIRECTIONS = { 'left', 'right' };
+
+block_indices = get_block_indices( STRUCTURE.block_size );
 
 while ( true )
   if ( isnan(tracker_sync.timer) || toc(tracker_sync.timer) >= tracker_sync.interval )
@@ -51,15 +65,44 @@ while ( true )
   if ( strcmp(cstate, 'new_trial') )
     LOG_DEBUG( 'new trial', 'entry', opts );
     
+    if ( TRIAL_NUMBER > 0 )
+      tn = TRIAL_NUMBER;
+      DATA(tn).events = events;
+      DATA(tn).errors = errors;
+      DATA(tn).acquired_initial_fixation = acquired_initial_fixation;
+      DATA(tn).was_correct = was_correct;
+      DATA(tn).made_selection = ~isnan( selected_target_index );
+      DATA(tn).direction = current_direction;
+      DATA(tn).selected_direction = selected_direction;
+      DATA(tn).selected_target_index = selected_target_index;
+      DATA(tn).image_info = get_image_name_struct( current_images );
+      
+      should_increment_block = acquired_initial_fixation;
+    else
+      should_increment_block = true;
+    end
+    
+    TRIAL_NUMBER = TRIAL_NUMBER + 1;
+    
+    selected_direction = '';
+    selected_target_index = nan;
+    was_correct = false;
+    
+    events = structfun( @(x) nan, events, 'un', 0 );
+    errors = structfun( @(x) false, errors, 'un', 0 );
+    
     cue1 = STIMULI.left_image1;
     cue2 = STIMULI.right_image1;
     
-    % TODO: implement block structure
-    if ( rand() > 0.5 )
-      current_direction = 'left';
-    else
-      current_direction = 'right';
+    if ( BLOCK_INDEX == STRUCTURE.block_size )
+      BLOCK_INDEX = 1;
+      block_indices = get_block_indices( STRUCTURE.block_size );
+    elseif ( should_increment_block )
+      BLOCK_INDEX = BLOCK_INDEX + 1;
     end
+    
+    direction_indices = [1, 2];
+    current_direction = DIRECTIONS{block_indices(BLOCK_INDEX)};
     
     correct_image_index = get_correct_image_index( current_direction, trial_type );
     
@@ -67,6 +110,10 @@ while ( true )
     
     % assign cues
     assign_images( cue1, cue2, current_images.left_cue_image, current_images.right_cue_image );
+    
+    LOG_DEBUG( sprintf('TRIAL:        %d', TRIAL_NUMBER), 'param', opts );
+    LOG_DEBUG( sprintf('BLOCK_INDEX:  %d', BLOCK_INDEX), 'param', opts );
+    LOG_DEBUG( sprintf('DIRECTION:    %s', current_direction), 'param', opts );
     
     cstate = 'fixation';
     first_entry = true;
@@ -76,12 +123,15 @@ while ( true )
   if ( strcmp(cstate, 'fixation') )
     if ( first_entry )
       LOG_DEBUG( cstate, 'entry', opts );
-      Screen( 'flip', WINDOW.index );
       TIMER.reset_timers( cstate );
+      
+      events.(cstate) = TIMER.get_time( 'task' );
       
       fix_square = STIMULI.fix_square;
       fix_square.reset_targets();
       
+      logged_entry = false;
+      acquired_initial_fixation = false;
       entered_target = false;
       drew_stimulus = false;
       first_entry = false;
@@ -91,16 +141,29 @@ while ( true )
       fix_square.draw();
       Screen( 'flip', WINDOW.index );
       drew_stimulus = true;
+      
+      events.fixation_onset = TIMER.get_time( 'task' );
+    end
+    
+    if ( ~logged_entry && fix_square.in_bounds() )
+      events.fixation_entered = TIMER.get_time( 'task' );
+      logged_entry = true;
     end
 
     if ( fix_square.duration_met() )
       LOG_DEBUG( 'fixation-met', 'event', opts );
       entered_target = true;
       cstate = 'present_targets';
+      acquired_initial_fixation = true;
+      first_entry = true;
+    elseif ( entered_target && ~fix_square.in_bounds() )
+      errors.broke_initial_fixation = true;
+      cstate = 'new_trial';
       first_entry = true;
     end
 
     if ( TIMER.duration_met(cstate) && ~entered_target )
+      errors.initial_fixation_not_entered = true;
       cstate = 'new_trial';
       first_entry = true;
     end
@@ -110,8 +173,12 @@ while ( true )
   if ( strcmp(cstate, 'present_targets') )
     if ( first_entry )
       LOG_DEBUG( cstate, 'entry', opts );
-      Screen( 'flip', WINDOW.index );
       TIMER.reset_timers( cstate );
+      
+      events.(cstate) = TIMER.get_time( 'task' );
+      
+      %   bridge reward
+      comm.reward( 1, REWARDS.bridge );
       
       s1 = STIMULI.left_image1;
       s2 = STIMULI.right_image1;
@@ -121,6 +188,7 @@ while ( true )
       
       if ( ~is_two_targets )
         current_cues = current_cues(correct_image_index);
+        direction_indices = direction_indices(correct_image_index);
       end
       
       pre_mask_delay = opts.TIMINGS.time_in.pre_mask_delay;
@@ -131,6 +199,7 @@ while ( true )
       selected_target_index = nan;
       drew_stimulus = false;
       did_show_mask = false;
+      logged_entry = false;
       first_entry = false;
     end
 
@@ -139,6 +208,8 @@ while ( true )
       Screen( 'flip', WINDOW.index );
       masked_timer = tic();
       drew_stimulus = true;
+      
+      events.target_onset = TIMER.get_time( 'task' );
     end
     
     if ( is_masked && ~did_show_mask && toc(masked_timer) > pre_mask_delay )
@@ -148,6 +219,8 @@ while ( true )
       Screen( 'flip', WINDOW.index );
       
       did_show_mask = true;
+      
+      events.mask_onset = TIMER.get_time( 'task' );
     end
     
     for i = 1:numel(current_cues)
@@ -157,7 +230,12 @@ while ( true )
       
       if ( is_ib )
         if ( isnan(entered_target_index) )
-          entered_target_index = i;
+          entered_target_index = direction_indices(i);
+          
+          if ( ~logged_entry )
+            events.target_entered = TIMER.get_time( 'task' );
+            logged_entry = true;
+          end
         end
       elseif ( entered_target && entered_target_index == i )
         % broke fixation to the original target -- decide how to handle
@@ -167,8 +245,10 @@ while ( true )
       
       if ( stim.duration_met() )
         LOG_DEBUG( sprintf('chose: %d', i), 'event', opts );
-        selected_target_index = i;
+        selected_target_index = direction_indices(i);
         cstate = 'choice_feedback';
+        
+        events.target_acquired = TIMER.get_time( 'task' );
         break;
       end
     end
@@ -187,22 +267,29 @@ while ( true )
   if ( strcmp(cstate, 'choice_feedback') )
     if ( first_entry )
       LOG_DEBUG( cstate, 'entry', opts );
-      Screen( 'flip', WINDOW.index );
       TIMER.reset_timers( cstate );
+      
+      events.(cstate) = TIMER.get_time( 'task' );
       
       s1 = STIMULI.left_image1;
       s2 = STIMULI.right_image1;
       
-      if ( is_two_targets )
-        success_crit = selected_target_index == correct_image_index;
+      was_correct = selected_target_index == correct_image_index;
+      
+      if ( isnan(selected_target_index) )
+        selected_direction = '';
       else
-        success_crit = ~isnan( selected_target_index );
+        selected_direction = DIRECTIONS{selected_target_index};
       end
       
-      if ( success_crit )
+      if ( was_correct )
         assign_images( s1, s2, current_images.left_success_image, current_images.right_success_image );
+        current_sound = SOUNDS.correct;
+        
+        comm.reward( 1, REWARDS.main );
       else
         assign_images( s1, s2, current_images.left_err_image, current_images.right_err_image );
+        current_sound = SOUNDS.incorrect;
       end
       
       current_stimuli = { s1, s2 };
@@ -219,6 +306,12 @@ while ( true )
       cellfun( @(x) x.draw(), current_stimuli );
       Screen( 'flip', WINDOW.index );
       drew_stimulus = true;
+      
+      events.feedback_onset = TIMER.get_time( 'task' );
+      
+      if ( INTERFACE.use_sounds )
+        sound( current_sound.sound, current_sound.fs );
+      end
     end
 
     if ( TIMER.duration_met(cstate) )
@@ -234,6 +327,8 @@ while ( true )
       Screen( 'flip', WINDOW.index );
       TIMER.reset_timers( cstate );
       
+      events.(cstate) = TIMER.get_time( 'task' );
+      
       first_entry = false;
     end
 
@@ -242,7 +337,19 @@ while ( true )
       first_entry = true;
     end
   end
+end
+
+TRACKER.shutdown();
+
+if ( INTERFACE.save )
+  fname = sprintf( '%s.mat', strrep(datestr(now), ':', '_') );
+  save_p = opts.PATHS.data;
   
+  shared_utils.io.require_dir( save_p );
+  
+  edf_file = TRACKER.edf;
+  
+  save( fullfile(save_p, fname), 'DATA', 'opts', 'edf_file', 'tracker_sync' );
 end
 
 end
@@ -403,4 +510,28 @@ if ( should_display )
 end
 
 end
+
+function image_names = get_image_name_struct(current_images)
+
+copy_image_fields = { 'left_cue_image_name', 'right_cue_image_name' ...
+        , 'left_err_image_name', 'right_err_image_name', 'left_success_image_name' ...
+        , 'right_success_image_name' };
+      
+image_names = struct();
+
+for i = 1:numel(copy_image_fields)
+  image_names.(copy_image_fields{i}) = current_images.(copy_image_fields{i});
+end
+
+end
 	
+
+function inds = get_block_indices(N)
+
+assert( mod(N, 2) == 0, 'Block size must be even.' );
+
+inds = ones( 1, N );
+n_two = floor( N / 2 );
+inds(randperm(N, n_two)) = 2;
+
+end
