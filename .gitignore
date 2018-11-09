@@ -1,2 +1,5 @@
+*.m~
+*.asv
++scnc/+config/default.mat
 stimuli/
 data/
