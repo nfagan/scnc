@@ -100,6 +100,16 @@ comm.bypass = ~opts.INTERFACE.use_reward;
 comm.start();
 SERIAL.comm = comm;
 
+%   RAND
+RAND = struct();
+RAND.original_state = rng();
+
+if ( STRUCTURE.use_randomization_seed )
+  RAND.state = get_rng_state( STRUCTURE.randomization_id );
+else
+  RAND.state = [];
+end
+
 %   EXPORT
 opts.STIMULI = STIMULI;
 opts.WINDOW = WINDOW;
@@ -108,6 +118,7 @@ opts.TIMER = TIMER;
 opts.SERIAL = SERIAL;
 opts.IMAGES = image_info;
 opts.SOUNDS = sounds;
+opts.RAND = RAND;
 
 end
 
@@ -130,6 +141,19 @@ file = files{1};
 [read_sound, fs] = audioread( file );
 
 sound_info = struct( 'sound', read_sound, 'fs', fs );
+
+end
+
+function s = get_rng_state(id)
+
+p = fullfile( scnc.util.get_project_folder(), 'rand' );
+fname = shared_utils.char.require_end( fullfile(p, id), '.mat' );
+
+if ( ~shared_utils.io.fexists(fname) )
+  error( 'Randomization with id "%s" does not exist in "%s".', id, p );
+end
+
+s = shared_utils.io.fload( fname );
 
 end
 
@@ -187,9 +211,18 @@ for i = 1:numel(subfolders)
         [~, filename] = fileparts( fullfiles{k} );
         fprintf( '\n\t Image "%s": %d of %d', filename, k, numel(imgs) );
       end
+      
       [img, map] = imread( fullfiles{k} );
       
-      imgs{k} = uint8( ind2rgb(img, map) .* 255 );
+      if ( ~isempty(map) )
+        img = ind2rgb( img, map );
+      end
+      
+      if ( isfloat(img) )
+        imgs{k} = uint8( img .* 255 );
+      else
+        imgs{k} = img;
+      end
     end
     
     images{j} = imgs;

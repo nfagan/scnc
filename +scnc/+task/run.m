@@ -33,7 +33,8 @@ trial_type = STRUCTURE.trial_type;
 is_masked = STRUCTURE.is_masked;
 is_two_targets = STRUCTURE.is_two_targets;
 
-BLOCK_INDEX = 0;
+TRIAL_BLOCK_INDEX = 1;
+BLOCK_NUMBER = 1;
 TRIAL_NUMBER = 0;
 
 DATA = struct();
@@ -42,7 +43,23 @@ errors = struct();
 
 DIRECTIONS = { 'left', 'right' };
 
-block_indices = get_block_indices( STRUCTURE.block_size );
+n_randomization_blocks = 1000;
+
+CONDITIONS = struct();
+CONDITIONS.indices = get_condition_indices( STRUCTURE, opts.RAND, n_randomization_blocks );
+CONDITIONS.stp = 0;
+
+PERFORMANCE = struct();
+PERFORMANCE.index = 1;
+PERFORMANCE.end = STRUCTURE.track_n_previous_trials;
+PERFORMANCE.was_correct = false( PERFORMANCE.end, 1 );
+PERFORMANCE.p_correct = nan;
+PERFORMANCE.n_correct = 0;
+PERFORMANCE.n_incorrect = 0;
+PERFORMANCE.n_initiated = 0;
+PERFORMANCE.n_uninitiated = 0;
+PERFORMANCE.n_selected = 0;
+PERFORMANCE.n_unselected = 0;
 
 while ( true )
   if ( isnan(tracker_sync.timer) || toc(tracker_sync.timer) >= tracker_sync.interval )
@@ -65,24 +82,60 @@ while ( true )
   if ( strcmp(cstate, 'new_trial') )
     LOG_DEBUG( 'new trial', 'entry', opts );
     
-    if ( TRIAL_NUMBER > 0 )
+    is_first_trial = TRIAL_NUMBER == 0;
+    
+    if ( ~is_first_trial )
+      made_selection = ~isnan( selected_target_index );
+      
+      should_increment_rand_block = acquired_initial_fixation;
+      should_increment_trial_block = made_selection;
+      
       tn = TRIAL_NUMBER;
+      
       DATA(tn).events = events;
       DATA(tn).errors = errors;
       DATA(tn).acquired_initial_fixation = acquired_initial_fixation;
       DATA(tn).was_correct = was_correct;
-      DATA(tn).made_selection = ~isnan( selected_target_index );
+      DATA(tn).made_selection = made_selection;
       DATA(tn).direction = current_direction;
       DATA(tn).selected_direction = selected_direction;
       DATA(tn).selected_target_index = selected_target_index;
       DATA(tn).image_info = get_image_name_struct( current_images );
       
-      should_increment_block = acquired_initial_fixation;
+      last_was_correct = was_correct;
+      last_block_n = BLOCK_NUMBER;
+      last_trial_block_index = TRIAL_BLOCK_INDEX;
+      last_rand_block_number = mod( CONDITIONS.stp, STRUCTURE.randomization_block_size );
+      last_direction = current_direction;
+      last_selected_direction = selected_direction;
+      last_trial_n = TRIAL_NUMBER;
+      last_made_selection = made_selection;
+      last_acquired_fixation = acquired_initial_fixation;
     else
-      should_increment_block = true;
+      should_increment_rand_block = true;
+      should_increment_trial_block = true;
+      last_was_correct = false;
+      acquired_initial_fixation = false;
     end
     
     TRIAL_NUMBER = TRIAL_NUMBER + 1;
+    
+    if ( ~is_first_trial && last_made_selection )
+      PERFORMANCE = update_performance( PERFORMANCE, was_correct );
+    end
+    
+    if ( ~is_first_trial )
+      PERFORMANCE.n_initiated = PERFORMANCE.n_initiated + double( acquired_initial_fixation );
+      PERFORMANCE.n_uninitiated = PERFORMANCE.n_uninitiated + double( ~acquired_initial_fixation );
+      PERFORMANCE.n_selected = PERFORMANCE.n_selected + double( last_made_selection );
+      PERFORMANCE.n_unselected = PERFORMANCE.n_unselected + double( ~last_made_selection );
+      
+      %   check whether performance has been met
+      if ( feval(STRUCTURE.stop_criterion, PERFORMANCE, opts) )
+        fprintf( '\n\n\n Stop criterion met; stopping.' );
+        break;
+      end
+    end
     
     selected_direction = '';
     selected_target_index = nan;
@@ -94,15 +147,27 @@ while ( true )
     cue1 = STIMULI.left_image1;
     cue2 = STIMULI.right_image1;
     
-    if ( BLOCK_INDEX == STRUCTURE.block_size )
-      BLOCK_INDEX = 1;
-      block_indices = get_block_indices( STRUCTURE.block_size );
-    elseif ( should_increment_block )
-      BLOCK_INDEX = BLOCK_INDEX + 1;
+    % default: go to fixation
+    next_state = 'fixation';
+    
+    if ( TRIAL_BLOCK_INDEX > STRUCTURE.trial_block_size )
+      TRIAL_BLOCK_INDEX = 1;
+      BLOCK_NUMBER = BLOCK_NUMBER + 1;
+      next_state = 'break_display_image';
+    elseif ( should_increment_trial_block )
+      TRIAL_BLOCK_INDEX = TRIAL_BLOCK_INDEX + 1;
+    end
+    
+    if ( CONDITIONS.stp == numel(CONDITIONS.indices) )
+      CONDITIONS.stp = 1;
+    elseif ( should_increment_rand_block )
+      CONDITIONS.stp = CONDITIONS.stp + 1;
     end
     
     direction_indices = [1, 2];
-    current_direction = DIRECTIONS{block_indices(BLOCK_INDEX)};
+    
+    current_direction_index = CONDITIONS.indices(CONDITIONS.stp);
+    current_direction = DIRECTIONS{current_direction_index};
     
     correct_image_index = get_correct_image_index( current_direction, trial_type );
     
@@ -111,11 +176,26 @@ while ( true )
     % assign cues
     assign_images( cue1, cue2, current_images.left_cue_image, current_images.right_cue_image );
     
-    LOG_DEBUG( sprintf('TRIAL:        %d', TRIAL_NUMBER), 'param', opts );
-    LOG_DEBUG( sprintf('BLOCK_INDEX:  %d', BLOCK_INDEX), 'param', opts );
-    LOG_DEBUG( sprintf('DIRECTION:    %s', current_direction), 'param', opts );
+    % assign break image
+%     configure_break_image( STIMULI.break_image1, IMAGES );
     
-    cstate = 'fixation';
+    if ( ~is_first_trial )
+      clc;
+      LOG_DEBUG( sprintf('TRIAL:         %d', last_trial_n), 'param', opts );
+      LOG_DEBUG( sprintf('BLOCK:         %d', last_block_n), 'param', opts );
+      LOG_DEBUG( sprintf('RAND_BLOCK:    %d', last_rand_block_number), 'param', opts );
+      LOG_DEBUG( sprintf('DIRECTION:     %s', last_direction), 'param', opts );
+      fprintf( '\n' );
+      LOG_DEBUG( sprintf('SELECTED:      %s', last_selected_direction), 'performance', opts );
+      LOG_DEBUG( sprintf('WAS CORRECT:   %d', last_was_correct), 'performance', opts );
+      LOG_DEBUG( sprintf('FIX ACQUIRED:  %d', last_acquired_fixation), 'performance', opts );
+      LOG_DEBUG( sprintf('DID SELECT:    %d', last_made_selection), 'performance', opts );
+      
+    
+      print_performance( PERFORMANCE, opts );
+    end
+    
+    cstate = next_state;
     first_entry = true;
   end
 
@@ -275,6 +355,7 @@ while ( true )
       s2 = STIMULI.right_image1;
       
       was_correct = selected_target_index == correct_image_index;
+      made_select = ~isnan( selected_target_index );
       
       if ( isnan(selected_target_index) )
         selected_direction = '';
@@ -282,20 +363,25 @@ while ( true )
         selected_direction = DIRECTIONS{selected_target_index};
       end
       
-      if ( was_correct )
-        assign_images( s1, s2, current_images.left_success_image, current_images.right_success_image );
-        current_sound = SOUNDS.correct;
-        
-        comm.reward( 1, REWARDS.main );
-      else
-        assign_images( s1, s2, current_images.left_err_image, current_images.right_err_image );
-        current_sound = SOUNDS.incorrect;
+      if ( made_select )
+        if ( was_correct )
+          assign_images( s1, s2, current_images.left_success_image, current_images.right_success_image );
+          current_sound = SOUNDS.correct;
+
+          comm.reward( 1, REWARDS.main );
+        else
+          assign_images( s1, s2, current_images.left_err_image, current_images.right_err_image );
+          current_sound = SOUNDS.incorrect;
+        end
       end
       
       current_stimuli = { s1, s2 };
       
       if ( ~is_two_targets )
         current_stimuli = current_stimuli(correct_image_index);
+        use_correct_image_index = 1;
+      else
+        use_correct_image_index = correct_image_index;
       end
       
       drew_stimulus = false;
@@ -303,13 +389,28 @@ while ( true )
     end
 
     if ( ~drew_stimulus )
+      if ( ~made_select )
+        Screen( 'BlendFunction', WINDOW.index, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+      end
+      
       cellfun( @(x) x.draw(), current_stimuli );
+      
+      if ( ~made_select )
+        Screen( 'FillRect', WINDOW.index, [255, 0, 255, 125] ...
+          , current_stimuli{use_correct_image_index}.vertices );
+      end
+      
       Screen( 'flip', WINDOW.index );
+      
+      if ( ~made_select )
+        Screen( 'BlendFunction', WINDOW.index, GL_ONE, GL_ZERO );
+      end
+      
       drew_stimulus = true;
       
       events.feedback_onset = TIMER.get_time( 'task' );
       
-      if ( INTERFACE.use_sounds )
+      if ( made_select && INTERFACE.use_sounds )
         sound( current_sound.sound, current_sound.fs );
       end
     end
@@ -332,7 +433,53 @@ while ( true )
       first_entry = false;
     end
 
-    if ( TIMER.duration_met(cstate) && ~entered_target )
+    if ( TIMER.duration_met(cstate) )
+      cstate = 'new_trial';
+      first_entry = true;
+    end
+  end
+  
+  %   STATE break_display_image
+  if ( strcmp(cstate, 'break_display_image') )
+    if ( first_entry )
+      LOG_DEBUG( cstate, 'entry', opts );
+      Screen( 'flip', WINDOW.index );
+      TIMER.reset_timers( cstate );
+      TIMER.reset_timers( 'cycle_break_image' );
+      
+      events.(cstate) = TIMER.get_time( 'task' );
+      
+      break_img = STIMULI.break_image1;
+      current_stimuli = { break_img };
+      
+      first_entry = false;
+      drew_stimulus = false;
+      logged_onset = false;
+      
+      last_index = 1;
+    end
+    
+    if ( TIMER.duration_met('cycle_break_image') )
+      drew_stimulus = false;
+      TIMER.reset_timers( 'cycle_break_image' );
+    end
+    
+    if ( ~drew_stimulus )
+      last_index = configure_break_image( break_img, IMAGES, last_index );
+      
+      cellfun( @(x) x.draw(), current_stimuli );
+      Screen( 'flip', WINDOW.index );
+      drew_stimulus = true;
+      
+      if ( ~logged_onset )
+        events.break_display_image_onset = TIMER.get_time( 'task' );
+        logged_onset = true;
+      end
+      
+      comm.reward( 1, REWARDS.recurring_break );
+    end
+
+    if ( TIMER.duration_met(cstate) )
       cstate = 'new_trial';
       first_entry = true;
     end
@@ -340,6 +487,10 @@ while ( true )
 end
 
 TRACKER.shutdown();
+
+if ( STRUCTURE.use_randomization_seed )
+  rng( opts.RAND.original_state );
+end
 
 if ( INTERFACE.save )
   fname = sprintf( '%s.mat', strrep(datestr(now), ':', '_') );
@@ -349,8 +500,33 @@ if ( INTERFACE.save )
   
   edf_file = TRACKER.edf;
   
+  opts.PERFORMANCE = PERFORMANCE;
+  opts.CONDITIONS = CONDITIONS;
+  
   save( fullfile(save_p, fname), 'DATA', 'opts', 'edf_file', 'tracker_sync' );
 end
+
+end
+
+function ind = configure_break_image(img, images, last_index)
+
+break_images = images.break;
+
+img_matrices = break_images{end};
+n_img_matrices = numel( img_matrices );
+
+ind = randi( n_img_matrices, 1 );
+
+if ( nargin > 2 )
+  while ( n_img_matrices > 1 && ind == last_index )
+    ind = randi( n_img_matrices, 1 );
+  end  
+  if ( ind > n_img_matrices )
+    ind = n_img_matrices;
+  end
+end
+
+img.image = img_matrices{ind};
 
 end
 
@@ -533,5 +709,63 @@ assert( mod(N, 2) == 0, 'Block size must be even.' );
 inds = ones( 1, N );
 n_two = floor( N / 2 );
 inds(randperm(N, n_two)) = 2;
+
+end
+
+function perf = update_performance(perf, was_correct)
+
+ind = perf.index;
+N = perf.end;
+
+if ( ind > N )
+  perf.was_correct(1:end-1) = perf.was_correct(2:end);
+  perf.was_correct(end) = was_correct;
+  ind = N;
+else
+  perf.was_correct(ind) = was_correct;
+end
+
+% update performance once N trials have ellapsed
+perf.p_correct = nnz( perf.was_correct ) / ind;
+
+perf.index = ind + 1;
+perf.n_correct = perf.n_correct + double( was_correct );
+perf.n_incorrect = perf.n_correct + double( ~was_correct );
+
+end
+
+function inds = get_condition_indices(structure, random, n_blocks)
+
+import shared_utils.general.get_blocked_condition_indices
+
+if ( ~isempty(random.state) )
+  rng( random.state );
+end
+
+block_size = structure.randomization_block_size;
+n_conditions = 2;
+
+inds = get_blocked_condition_indices( n_blocks, block_size, n_conditions );
+
+if ( ~isempty(random.state) )
+  rng( random.original_state );
+end
+
+end
+
+function print_performance(PERFORMANCE, opts)
+
+if ( ~isnan(PERFORMANCE.p_correct) )
+  LOG_DEBUG( sprintf('P. CORRECT:   %0.2f', PERFORMANCE.p_correct), 'performance', opts );
+else
+  LOG_DEBUG( 'P. CORRECT:          nan', 'performance', opts );
+end
+
+LOG_DEBUG( sprintf('N CORRECT:     %d', PERFORMANCE.n_correct), 'performance', opts );
+LOG_DEBUG( sprintf('N INCORRECT:   %d', PERFORMANCE.n_incorrect), 'performance', opts );
+LOG_DEBUG( sprintf('N INITIATED:   %d', PERFORMANCE.n_initiated), 'performance', opts );
+LOG_DEBUG( sprintf('N UNINITIATED: %d', PERFORMANCE.n_uninitiated), 'performance', opts );
+LOG_DEBUG( sprintf('N SELECTED:    %d', PERFORMANCE.n_selected), 'performance', opts );
+LOG_DEBUG( sprintf('N UNSELECTED:  %d', PERFORMANCE.n_unselected), 'performance', opts );
 
 end

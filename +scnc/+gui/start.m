@@ -81,27 +81,33 @@ panels.io = uipanel( panels.interface ...
   , 'Title', 'IO' ...
   , 'Position', [ .25, 0, .25, .5 ] ...
 );
-text_pos =  struct( 'x', 0, 'y',  0, 'w', .5 );
-field_pos = struct( 'x', .5, 'y', 0, 'w', .5 );
-text_field_creator( panels.io, 'PATHS', {}, text_pos, field_pos );
+
+io_popup = shared_utils.gui.TextFieldDropdown();
+io_popup.on_change = @handle_io_change;
+io_popup.parent = panels.io;
+io_popup.set_data( config.PATHS );
 
 % - SCREEN
 panels.screen = uipanel( panels.interface ...
   , 'Title', 'Screen/Window' ...
   , 'Position', [ .25, .5, .25, .5 ] ...
 );
-text_pos =  struct( 'x', 0, 'y',  0, 'w', .5 );
-field_pos = struct( 'x', .5, 'y', 0, 'w', .5 );
-text_field_creator( panels.screen, 'SCREEN', {}, text_pos, field_pos );
+
+screen_popup = shared_utils.gui.TextFieldDropdown();
+screen_popup.on_change = @handle_screen_change;
+screen_popup.parent = panels.screen;
+screen_popup.set_data( config.SCREEN );
 
 % - Serial port specifiers
 panels.serial = uipanel( panels.interface ...
   , 'Title', 'Serial' ...
   , 'Position', [ .5, 0, .5, .5 ] ...
 );
-text_pos =  struct( 'x', 0, 'y',  0, 'w', .5 );
-field_pos = struct( 'x', .5, 'y', 0, 'w', .5 );
-text_field_creator( panels.serial, 'SERIAL', {}, text_pos, field_pos );
+
+serial_popup = shared_utils.gui.TextFieldDropdown();
+serial_popup.on_change = @handle_serial_change;
+serial_popup.parent = panels.serial;
+serial_popup.set_data( config.SERIAL );
 
 % - Rewards - %
 panels.reward = uipanel( panels.interface ...
@@ -138,9 +144,11 @@ panels.structure = uipanel( F ...
   , 'Position', [ X+W/2, Y+L/2, W/2, L/2 ] ...
 );
 
-text_pos =  struct( 'x', 0,   'y', 0.5, 'w', .5 );
-field_pos = struct( 'x', .5,  'y', 0.5, 'w', .5 );
-text_field_creator( panels.structure, 'STRUCTURE', {}, text_pos, field_pos );
+handle_structure_popup();
+
+% text_pos =  struct( 'x', 0,   'y', 0.5, 'w', .5 );
+% field_pos = struct( 'x', .5,  'y', 0.5, 'w', .5 );
+% text_field_creator( panels.structure, 'STRUCTURE', {}, text_pos, field_pos );
 
 
 Y = Y + L;
@@ -388,6 +396,92 @@ function handle_timein_popup(source, event)
     config.TIMINGS.time_in.(target) = new_time;
     
     scnc.config.save( config );
+  end
+  
+end
+
+function handle_structure_popup(source, event)
+  
+  persistent target;
+  
+  w_ = 0.5;
+  l_ = 0.5;
+  x_ = 0;
+  y_ = 0;
+  
+  position_ = [ x_, y_, w_, l_ ];
+  
+  structure = config.STRUCTURE;
+  strs = fieldnames( structure );
+  
+  if ( numel(strs) == 0 )
+    warning( 'No state times given. Skipping time_in construction.' );
+    return;
+  end
+  
+  if ( isempty(target) )
+    target = strs{1};
+  end
+  
+  idx = find( strcmp(strs, target) );
+  val = structure.(strs{idx});
+  
+  if ( islogical(val) )
+    if ( val ), val = 'true'; else, val = 'false'; end
+  end
+  
+  uicontrol( panels.structure ...
+    , 'Style',  'edit' ...
+    , 'String',  val ...
+    , 'Units',  'normalized' ...
+    , 'Position', position_ ...
+    , 'Callback', @handle_timein_edit ...
+  );
+
+  position_ = [ x_+w_, y_, w_, l_ ];
+  uicontrol( panels.structure ...
+    , 'Style',      'popup' ...
+    , 'String',     strs ...
+    , 'Value',      idx ...
+    , 'Units',      'normalized' ...
+    , 'Tag',        'timein_selector' ...
+    , 'Position',   position_ ...
+    , 'Callback',   @handle_timein_select ...
+  );
+
+  function handle_timein_select(source, event)
+    
+    target = source.String{source.Value};
+    
+    handle_structure_popup();
+  end
+
+  function handle_timein_edit(source, event)    
+    try
+      str = source.String;
+      is_str = any( isstrprop(str, 'alpha') );
+      
+      if ( is_str )
+        if ( strcmp(str, 'true') )
+          value = true;
+        elseif ( strcmp(str, 'false') )
+          value = false;
+        else
+          value = str;
+        end
+      else
+        value = str2double( str );
+      end
+    catch err
+      warning( err.message );
+      return;
+    end 
+    
+    config.STRUCTURE.(target) = value;
+    
+    scnc.config.save( config );
+    
+    handle_structure_popup();
   end
   
 end
@@ -662,6 +756,24 @@ function handle_reward_size_setup()
   
   end
 end
+
+  function handle_io_change(old, new, targ)
+    config.PATHS = new;
+    
+    scnc.config.save( config );
+  end
+
+  function handle_screen_change(old, new, targ)
+    config.SCREEN = new;
+    
+    scnc.config.save( config );
+  end
+
+  function handle_serial_change(old, new, targ)
+    config.SERIAL = new;
+    
+    scnc.config.save( config );
+  end
 
 end
 

@@ -6,14 +6,20 @@ function try_add_ptoolbox()
 %     This function tries a couple of common Psychtoolbox install
 %     directories, in an OS specific way.
 
+persistent added_to_path;
+
+if ( ~isempty(added_to_path) && added_to_path )
+  return
+end
+
 has_pt = ~isempty( which('KbName') );
 
 if ( has_pt ), return; end
 
 if ( ismac() )
-try_add_paths( {'/Applications/Psychtoolbox'} );
+  added_to_path = try_add_paths( {'/Applications/Psychtoolbox'} );
 elseif ( ispc() )
-try_add_paths( {'C:\toolbox'} );
+  added_to_path = try_add_paths( {'C:\toolbox'} );
 else
 error( 'Unrecognized platform "%s".', computer );
 end
