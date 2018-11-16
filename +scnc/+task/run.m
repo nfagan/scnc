@@ -396,7 +396,8 @@ while ( true )
       cellfun( @(x) x.draw(), current_stimuli );
       
       if ( ~made_select )
-        Screen( 'FillRect', WINDOW.index, [255, 0, 255, 125] ...
+        mask_color = [ STIMULI.setup.no_choice_indicator.color, 125 ];
+        Screen( 'FillRect', WINDOW.index, mask_color ...
           , current_stimuli{use_correct_image_index}.vertices );
       end
       

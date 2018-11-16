@@ -83,6 +83,11 @@ for i = 1:numel(stim_fs)
     stim_.make_target( TRACKER, duration );
     stim_.targets{1}.padding = padding;
   end
+  
+  if ( isfield(stim, 'shift') )
+    stim_.shift( stim.shift(1), stim.shift(2) );
+  end
+  
   STIMULI.(stim_fs{i}) = stim_;
 end
 
@@ -127,6 +132,7 @@ function sound_info = get_sounds(sound_p)
 sound_info = struct();
 sound_info.correct = get_sound( fullfile(sound_p, 'correct') );
 sound_info.incorrect = get_sound( fullfile(sound_p, 'incorrect') );
+sound_info.break = get_sound( fullfile(sound_p, 'break') );
 
 end
 
