@@ -25,6 +25,14 @@ catch err
   warning( err.message );
 end
 
+has_ptb = ~isempty( which('Screen') );
+
+if ( opts.INTERFACE.skip_sync_tests && has_ptb )
+  Screen( 'Preference', 'SkipSyncTests', 1 );
+elseif ( has_ptb )
+  Screen( 'Preference', 'SkipSyncTests', 0 );
+end
+
 STIMULI = opts.STIMULI;
 SCREEN = opts.SCREEN;
 SERIAL = opts.SERIAL;
@@ -47,9 +55,12 @@ WINDOW.index = windex;
 WINDOW.rect = wrect;
 
 %   TRACKER
-edf_filename = get_edf_filename( opts.PATHS.data, 'sc' );
+edf_p = fullfile( opts.PATHS.data, 'edf' );
+shared_utils.io.require_dir( edf_p );
 
-TRACKER = EyeTracker( edf_filename, opts.PATHS.data, WINDOW.index );
+edf_filename = get_edf_filename( edf_p, 'sc' );
+
+TRACKER = EyeTracker( edf_filename, edf_p, WINDOW.index );
 TRACKER.bypass = opts.INTERFACE.use_mouse;
 TRACKER.init();
 
@@ -268,8 +279,9 @@ does_exist = true;
 stp = 1;
 
 while ( does_exist )
-  fname = sprintf( '%s%d', prefix, stp );
+  fname = sprintf( '%s%d.edf', prefix, stp );
   does_exist = shared_utils.io.fexists( fullfile(path, fname) );
+  stp = stp + 1;
 end
 
 end

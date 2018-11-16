@@ -33,7 +33,7 @@ trial_type = STRUCTURE.trial_type;
 is_masked = STRUCTURE.is_masked;
 is_two_targets = STRUCTURE.is_two_targets;
 
-TRIAL_BLOCK_INDEX = 1;
+TRIAL_BLOCK_INDEX = 0;
 BLOCK_NUMBER = 1;
 TRIAL_NUMBER = 0;
 
@@ -113,7 +113,7 @@ while ( true )
       last_acquired_fixation = acquired_initial_fixation;
     else
       should_increment_rand_block = true;
-      should_increment_trial_block = true;
+      should_increment_trial_block = false;
       last_was_correct = false;
       acquired_initial_fixation = false;
     end
@@ -153,12 +153,22 @@ while ( true )
     if ( TRIAL_BLOCK_INDEX > STRUCTURE.trial_block_size )
       TRIAL_BLOCK_INDEX = 1;
       BLOCK_NUMBER = BLOCK_NUMBER + 1;
-      next_state = 'break_display_image';
+      
     elseif ( should_increment_trial_block )
       TRIAL_BLOCK_INDEX = TRIAL_BLOCK_INDEX + 1;
+      
+      if ( TRIAL_BLOCK_INDEX == STRUCTURE.trial_block_size )
+        if ( STRUCTURE.use_break )
+          next_state = 'break_display_image';
+        end
+      end
     end
     
-    if ( CONDITIONS.stp == numel(CONDITIONS.indices) )
+    if ( STRUCTURE.debug_stimuli_size )
+      next_state = 'debug_stimuli_size';
+    end
+    
+    if ( CONDITIONS.stp > numel(CONDITIONS.indices) )
       CONDITIONS.stp = 1;
     elseif ( should_increment_rand_block )
       CONDITIONS.stp = CONDITIONS.stp + 1;
@@ -219,6 +229,14 @@ while ( true )
 
     if ( ~drew_stimulus )
       fix_square.draw();
+      
+      c_rect = fix_square.vertices;
+      cx = (c_rect(3) - c_rect(1)) / 2 + c_rect(1);
+      cy = (c_rect(4) - c_rect(2)) / 2 + c_rect(2);
+      sz = 60;
+      new_rect = CenterRectOnPointd( [0, 0, sz, sz], cx, cy );
+      Screen( 'FillOval', WINDOW.index, [125, 125, 125], new_rect ); 
+      
       Screen( 'flip', WINDOW.index );
       drew_stimulus = true;
       
@@ -244,6 +262,33 @@ while ( true )
 
     if ( TIMER.duration_met(cstate) && ~entered_target )
       errors.initial_fixation_not_entered = true;
+      cstate = 'iti';
+      first_entry = true;
+    end
+  end
+  
+  %   STATE debug_stimuli_size
+  
+  if ( strcmp(cstate, 'debug_stimuli_size') )
+    if ( first_entry )
+      s1 = STIMULI.left_image1;
+      s2 = STIMULI.right_image1;
+      
+      did_show = false;
+      first_entry = false;
+      
+      current_cues = { s1, s2 };
+      cellfun( @(x) x.reset_targets(), current_cues );
+    end
+    
+    if ( ~did_show )
+      cellfun( @(x) x.draw(), current_cues );
+      Screen( 'flip', WINDOW.index );
+      
+      did_show = true;
+    end
+    
+    if ( TIMER.duration_met(cstate) )
       cstate = 'new_trial';
       first_entry = true;
     end
@@ -468,8 +513,11 @@ while ( true )
     if ( ~drew_stimulus )
       last_index = configure_break_image( break_img, IMAGES, last_index );
       
-      cellfun( @(x) x.draw(), current_stimuli );
-      Screen( 'flip', WINDOW.index );
+      if ( STRUCTURE.show_break_images )
+        cellfun( @(x) x.draw(), current_stimuli );
+        Screen( 'flip', WINDOW.index );
+      end
+      
       drew_stimulus = true;
       
       if ( ~logged_onset )

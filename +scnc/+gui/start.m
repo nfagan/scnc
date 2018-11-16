@@ -159,7 +159,7 @@ panels.run = uipanel( F ...
   , 'Position', [ X, Y, W, L ] ...
 );
 
-funcs = { 'hard reset', 'clean-up', 'Start' };
+funcs = { 'load', 'clean-up', 'Start' };
 
 w = .5;
 l = 1 / numel(funcs);
@@ -221,6 +221,9 @@ function handle_button(source, event)
       scnc.config.save( config );
       scnc.task.start( config );
       
+    case 'load'
+      load_new_config_file();
+      
     case 'clean-up'
       scnc.config.save( config );
       scnc.task.cleanup();
@@ -241,6 +244,26 @@ function handle_button(source, event)
     otherwise
       error( 'Unrecognized identifier ''%s''', source.String );
   end
+end
+
+function load_new_config_file()
+  
+  %   LOAD_NEW_CONFIG_FILE -- Update the actively edited config file.
+  
+  [fname, path] = uigetfile( {'*.mat','MAT-files (*.mat)' }, 'MultiSelect', 'off' );
+  if ( fname == 0 ), return; end
+  config = load( fullfile(path, fname) );
+  config = config.( char(fieldnames(config)) );
+  
+  try 
+    scnc.util.assertions.assert__is_config( config );  
+  catch err
+    warning( 'Not a valid config file; not loading.' );
+    return
+  end
+  
+  scnc.config.save( config );
+  scnc.gui.start( F );
 end
 
 function handle_textfields(source, event)

@@ -13,6 +13,8 @@ if ( nargin < 1 ), do_save = false; end
 
 try
   scnc.util.try_add_ptoolbox();
+  
+  KbName( 'UnifyKeyNames' );
 catch err
   warning( err.message );
 end
@@ -28,6 +30,7 @@ conf.(const.config_id) = true;
 META = struct();
 META.subject = '';
 META.notes = '';
+META.notes2 = '';
 
 % PATHS
 PATHS = struct();
@@ -47,6 +50,7 @@ INTERFACE.use_brains_arduino = false;
 INTERFACE.is_debug = true;
 INTERFACE.use_sounds = true;
 INTERFACE.save = true;
+INTERFACE.skip_sync_tests = false;
 INTERFACE.debug_tags = 'all';
 INTERFACE.gui_fields.exclude = { 'stop_key', 'debug_tags' };
 
@@ -62,8 +66,11 @@ STRUCTURE.correct_performance_threshold = 0.80;
 STRUCTURE.n_selected_threshold = 385;
 STRUCTURE.use_performance_threshold = true;
 STRUCTURE.use_randomization_seed = true;
+STRUCTURE.use_break = true;
+STRUCTURE.show_break_images = false;
 STRUCTURE.randomization_id = 'a';
 STRUCTURE.stop_criterion = 'scnc.util.default_stop_criterion';
+STRUCTURE.debug_stimuli_size = false;
 
 %	SCREEN
 SCREEN = struct();
@@ -86,6 +93,7 @@ time_in.pre_mask_delay = 1e-7;  % short as possible; usually will be 16.666 ms
 time_in.iti = 1;
 time_in.break_display_image = 30;
 time_in.cycle_break_image = 5;
+time_in.debug_stimuli_size = 100;
 
 TIMINGS.time_in = time_in;
 
@@ -112,9 +120,9 @@ STIMULI.setup.left_image1 =  struct( ...
   , 'image_matrix',     [] ...
   , 'color',            [ 0, 0, 255 ] ...
   , 'placement',        'center-left' ...
-  , 'shift',            [ 0, 0 ] ...
+  , 'shift',            [ -15, 0 ] ...
   , 'has_target',       true ...
-  , 'target_duration',  0.1 ...
+  , 'target_duration',  0.2 ...
   , 'target_padding',   0 ...
   , 'non_editable',     non_editable_properties ...
 );
@@ -125,9 +133,9 @@ STIMULI.setup.right_image1 =  struct( ...
   , 'image_matrix',     [] ...
   , 'color',            [ 255, 0, 0 ] ...
   , 'placement',        'center-right' ...
-  , 'shift',            [ 0, 0 ] ...
+  , 'shift',            [ 15, 0 ] ...
   , 'has_target',       true ...
-  , 'target_duration',  0.1 ...
+  , 'target_duration',  0.2 ...
   , 'target_padding',   0 ...
   , 'non_editable',     non_editable_properties ...
 );
@@ -153,7 +161,7 @@ STIMULI.setup.break_image1 = struct( ...
 
 %	SERIAL
 SERIAL = struct();
-SERIAL.port = 'COM3';
+SERIAL.port = 'COM4';
 SERIAL.channels = { 'A' };
 SERIAL.gui_fields.include = { 'port' };
 
