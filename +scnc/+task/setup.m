@@ -44,7 +44,10 @@ catch err
   throw( err );
 end
 
-shared_utils.io.require_dir( opts.PATHS.data );
+root_data_path = fullfile( opts.PATHS.data, datestr(now, 'mmddyy') );
+opts.PATHS.current_data_root = root_data_path;
+
+shared_utils.io.require_dir( root_data_path );
 
 %   SCREEN
 [windex, wrect] = Screen( 'OpenWindow', SCREEN.index, SCREEN.background_color, SCREEN.rect );
@@ -55,7 +58,7 @@ WINDOW.index = windex;
 WINDOW.rect = wrect;
 
 %   TRACKER
-edf_p = fullfile( opts.PATHS.data, 'edf' );
+edf_p = fullfile( root_data_path, 'edf' );
 shared_utils.io.require_dir( edf_p );
 
 edf_filename = get_edf_filename( edf_p, 'sc' );

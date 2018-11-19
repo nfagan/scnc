@@ -144,7 +144,12 @@ panels.structure = uipanel( F ...
   , 'Position', [ X+W/2, Y+L/2, W/2, L/2 ] ...
 );
 
-handle_structure_popup();
+structure_popup = shared_utils.gui.TextFieldDropdown();
+structure_popup.on_change = @handle_structure_change;
+structure_popup.parent = panels.structure;
+structure_popup.set_data( config.STRUCTURE );
+
+% handle_structure_popup();
 
 % text_pos =  struct( 'x', 0,   'y', 0.5, 'w', .5 );
 % field_pos = struct( 'x', .5,  'y', 0.5, 'w', .5 );
@@ -794,6 +799,12 @@ end
 
   function handle_serial_change(old, new, targ)
     config.SERIAL = new;
+    
+    scnc.config.save( config );
+  end
+
+  function handle_structure_change(old, new, targ)
+    config.STRUCTURE = new;
     
     scnc.config.save( config );
   end

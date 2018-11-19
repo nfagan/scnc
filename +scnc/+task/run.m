@@ -125,10 +125,12 @@ while ( true )
     end
     
     if ( ~is_first_trial )
+      aq_init = acquired_initial_fixation;
+      
       PERFORMANCE.n_initiated = PERFORMANCE.n_initiated + double( acquired_initial_fixation );
       PERFORMANCE.n_uninitiated = PERFORMANCE.n_uninitiated + double( ~acquired_initial_fixation );
-      PERFORMANCE.n_selected = PERFORMANCE.n_selected + double( last_made_selection );
-      PERFORMANCE.n_unselected = PERFORMANCE.n_unselected + double( ~last_made_selection );
+      PERFORMANCE.n_selected = PERFORMANCE.n_selected + double( aq_init && last_made_selection );
+      PERFORMANCE.n_unselected = PERFORMANCE.n_unselected + double( aq_init && ~last_made_selection );
       
       %   check whether performance has been met
       if ( feval(STRUCTURE.stop_criterion, PERFORMANCE, opts) )
@@ -542,8 +544,8 @@ if ( STRUCTURE.use_randomization_seed )
 end
 
 if ( INTERFACE.save )
-  fname = sprintf( '%s.mat', strrep(datestr(now), ':', '_') );
-  save_p = opts.PATHS.data;
+  fname = get_data_filename( opts );
+  save_p = opts.PATHS.current_data_root;
   
   shared_utils.io.require_dir( save_p );
   
@@ -554,6 +556,30 @@ if ( INTERFACE.save )
   
   save( fullfile(save_p, fname), 'DATA', 'opts', 'edf_file', 'tracker_sync' );
 end
+
+end
+
+function fname = get_data_filename(opts)
+
+structure = opts.STRUCTURE;
+
+trial_type_str = structure.trial_type;
+
+if ( structure.is_masked )
+  conscious_str = 'conscious';
+else
+  conscious_str = 'nonconscious';
+end
+
+if ( structure.is_two_targets )
+  targ_str = 'two_targ';
+else
+  targ_str = 'one_targ';
+end
+
+date_str = strrep( datestr(now), ':', '_' );
+
+fname = sprintf( '%s_%s_%s_%s.mat', trial_type_str, conscious_str, targ_str, date_str );
 
 end
 
@@ -779,7 +805,7 @@ perf.p_correct = nnz( perf.was_correct ) / ind;
 
 perf.index = ind + 1;
 perf.n_correct = perf.n_correct + double( was_correct );
-perf.n_incorrect = perf.n_correct + double( ~was_correct );
+perf.n_incorrect = perf.n_incorrect + double( ~was_correct );
 
 end
 
