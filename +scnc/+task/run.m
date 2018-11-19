@@ -61,6 +61,8 @@ PERFORMANCE.n_uninitiated = 0;
 PERFORMANCE.n_selected = 0;
 PERFORMANCE.n_unselected = 0;
 
+reward_timer = nan;
+
 while ( true )
   if ( isnan(tracker_sync.timer) || toc(tracker_sync.timer) >= tracker_sync.interval )
     TRACKER.send( 'RESYNCH' );
@@ -73,6 +75,13 @@ while ( true )
 
   if ( key_pressed )
     if ( key_code(INTERFACE.stop_key) ), break; end
+    
+    if ( key_code(INTERFACE.reward_key) )
+      if ( isnan(reward_timer) || toc(reward_timer) > 0.4 )
+        comm.reward( 1, REWARDS.key_press );
+        reward_timer = tic();
+      end
+    end
   end
 
   TRACKER.update_coordinates();
@@ -124,6 +133,8 @@ while ( true )
       PERFORMANCE = update_performance( PERFORMANCE, was_correct );
     end
     
+    stop_criterion_met = false;
+    
     if ( ~is_first_trial )
       aq_init = acquired_initial_fixation;
       
@@ -133,10 +144,7 @@ while ( true )
       PERFORMANCE.n_unselected = PERFORMANCE.n_unselected + double( aq_init && ~last_made_selection );
       
       %   check whether performance has been met
-      if ( feval(STRUCTURE.stop_criterion, PERFORMANCE, opts) )
-        fprintf( '\n\n\n Stop criterion met; stopping.' );
-        break;
-      end
+      stop_criterion_met = feval( STRUCTURE.stop_criterion, PERFORMANCE, opts );
     end
     
     selected_direction = '';
@@ -207,6 +215,11 @@ while ( true )
       print_performance( PERFORMANCE, opts );
     end
     
+    if ( stop_criterion_met ) 
+      fprintf( '\n\n\n Stop criterion met; stopping.' );
+      break;
+    end
+    
     cstate = next_state;
     first_entry = true;
   end
@@ -237,7 +250,7 @@ while ( true )
       cy = (c_rect(4) - c_rect(2)) / 2 + c_rect(2);
       sz = 60;
       new_rect = CenterRectOnPointd( [0, 0, sz, sz], cx, cy );
-      Screen( 'FillOval', WINDOW.index, [125, 125, 125], new_rect ); 
+%       Screen( 'FillOval', WINDOW.index, [125, 125, 125], new_rect ); 
       
       Screen( 'flip', WINDOW.index );
       drew_stimulus = true;
@@ -566,9 +579,9 @@ structure = opts.STRUCTURE;
 trial_type_str = structure.trial_type;
 
 if ( structure.is_masked )
-  conscious_str = 'conscious';
-else
   conscious_str = 'nonconscious';
+else
+  conscious_str = 'conscious';
 end
 
 if ( structure.is_two_targets )

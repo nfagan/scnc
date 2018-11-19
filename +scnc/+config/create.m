@@ -44,6 +44,7 @@ DEPENDS.repositories = { 'ptb_helpers', 'serial_comm', 'shared_utils' };
 %	INTERFACE
 INTERFACE = struct();
 INTERFACE.stop_key = KbName( 'escape' );
+INTERFACE.reward_key = KbName( 'r' );
 INTERFACE.use_mouse = true;
 INTERFACE.use_reward = false;
 INTERFACE.use_brains_arduino = false;
@@ -52,7 +53,7 @@ INTERFACE.use_sounds = true;
 INTERFACE.save = true;
 INTERFACE.skip_sync_tests = false;
 INTERFACE.debug_tags = 'all';
-INTERFACE.gui_fields.exclude = { 'stop_key', 'debug_tags' };
+INTERFACE.gui_fields.exclude = { 'stop_key', 'reward_key', 'debug_tags' };
 
 % STRUCTURE
 STRUCTURE = struct();
