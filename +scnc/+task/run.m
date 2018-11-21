@@ -550,7 +550,24 @@ while ( true )
   end
 end
 
+try
+  clc;
+  LOG_DEBUG( sprintf('TRIAL:         %d', last_trial_n), 'param', opts );
+  LOG_DEBUG( sprintf('BLOCK:         %d', last_block_n), 'param', opts );
+  LOG_DEBUG( sprintf('RAND_BLOCK:    %d', last_rand_block_number), 'param', opts );
+  LOG_DEBUG( sprintf('DIRECTION:     %s', last_direction), 'param', opts );
+  fprintf( '\n' );
+  LOG_DEBUG( sprintf('SELECTED:      %s', last_selected_direction), 'performance', opts );
+  LOG_DEBUG( sprintf('WAS CORRECT:   %d', last_was_correct), 'performance', opts );
+  LOG_DEBUG( sprintf('FIX ACQUIRED:  %d', last_acquired_fixation), 'performance', opts );
+  LOG_DEBUG( sprintf('DID SELECT:    %d', last_made_selection), 'performance', opts );
+catch err
+  warning( err.message );
+end
+
+s = warning( 'off', 'all' );
 TRACKER.shutdown();
+warning( s );
 
 if ( STRUCTURE.use_randomization_seed )
   rng( opts.RAND.original_state );
