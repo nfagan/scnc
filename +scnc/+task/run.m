@@ -579,6 +579,8 @@ try
   LOG_DEBUG( sprintf('WAS CORRECT:   %d', last_was_correct), 'performance', opts );
   LOG_DEBUG( sprintf('FIX ACQUIRED:  %d', last_acquired_fixation), 'performance', opts );
   LOG_DEBUG( sprintf('DID SELECT:    %d', last_made_selection), 'performance', opts );
+  
+  print_performance( PERFORMANCE, opts );
 catch err
   warning( err.message );
 end
