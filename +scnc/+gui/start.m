@@ -620,12 +620,17 @@ function handle_stimuli_popup(source, event)
         need_update = true;
         switch ( prop_val_ )
           case 'Rectangle'
-            config.STIMULI.setup.(stim_name_) = ...
-              rmfield( config.STIMULI.setup.(stim_name_), 'image_file' );
+            try
+              config.STIMULI.setup.(stim_name_) = ...
+                rmfield( config.STIMULI.setup.(stim_name_), 'image_file' );
+            catch err
+              warning( err.message );
+            end
           case 'Image'
             config.STIMULI.setup.(stim_name_).image_file = '';
           otherwise
-            error( 'Unrecognized class value ''%s''', prop_val_ );
+            warning( 'Unrecognized class value ''%s''', prop_val_ );
+            prop_val_ = original_val;
         end
       end
     end

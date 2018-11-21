@@ -33,7 +33,7 @@ trial_type = STRUCTURE.trial_type;
 is_masked = STRUCTURE.is_masked;
 is_two_targets = STRUCTURE.is_two_targets;
 
-TRIAL_BLOCK_INDEX = 0;
+TRIAL_BLOCK_INDEX = 1;
 BLOCK_NUMBER = 1;
 TRIAL_NUMBER = 0;
 
@@ -160,19 +160,33 @@ while ( true )
     % default: go to fixation
     next_state = 'fixation';
     
-    if ( TRIAL_BLOCK_INDEX > STRUCTURE.trial_block_size )
-      TRIAL_BLOCK_INDEX = 1;
+    if ( should_increment_trial_block )
+      TRIAL_BLOCK_INDEX = TRIAL_BLOCK_INDEX + 1;
+    end
+    
+    if ( TRIAL_BLOCK_INDEX > opts.STRUCTURE.trial_block_size )
       BLOCK_NUMBER = BLOCK_NUMBER + 1;
       
-    elseif ( should_increment_trial_block )
-      TRIAL_BLOCK_INDEX = TRIAL_BLOCK_INDEX + 1;
-      
-      if ( TRIAL_BLOCK_INDEX == STRUCTURE.trial_block_size )
-        if ( STRUCTURE.use_break )
-          next_state = 'break_display_image';
-        end
+      if ( STRUCTURE.use_break )
+        next_state = 'break_display_image';
       end
+      
+      TRIAL_BLOCK_INDEX = 1;
     end
+    
+%     if ( TRIAL_BLOCK_INDEX > STRUCTURE.trial_block_size )
+%       TRIAL_BLOCK_INDEX = 1;
+%       BLOCK_NUMBER = BLOCK_NUMBER + 1;
+%       
+%     elseif ( should_increment_trial_block )
+%       TRIAL_BLOCK_INDEX = TRIAL_BLOCK_INDEX + 1;
+%       
+%       if ( TRIAL_BLOCK_INDEX == STRUCTURE.trial_block_size )
+%         if ( STRUCTURE.use_break )
+%           next_state = 'break_display_image';
+%         end
+%       end
+%     end
     
     if ( STRUCTURE.debug_stimuli_size )
       next_state = 'debug_stimuli_size';
@@ -198,6 +212,10 @@ while ( true )
     
     % assign break image
 %     configure_break_image( STIMULI.break_image1, IMAGES );
+
+    if ( isa(STIMULI.fix_square, 'Image') )
+      assign_fixation_image( STIMULI.fix_square, IMAGES );
+    end
     
     if ( ~is_first_trial )
       clc;
@@ -593,6 +611,19 @@ end
 date_str = strrep( datestr(now), ':', '_' );
 
 fname = sprintf( '%s_%s_%s_%s.mat', trial_type_str, conscious_str, targ_str, date_str );
+
+end
+
+function assign_fixation_image(img, images)
+
+fixation_images = images.fixation;
+
+img_matrices = fixation_images{end};
+n_img_matrices = numel( img_matrices );
+
+ind = randi( n_img_matrices, 1 );
+
+img.image = img_matrices{ind};
 
 end
 

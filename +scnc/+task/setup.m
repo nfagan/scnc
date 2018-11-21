@@ -80,13 +80,17 @@ image_info = get_images( image_p, opts.INTERFACE.is_debug, 4 );
 stim_fs = fieldnames( STIMULI.setup );
 for i = 1:numel(stim_fs)
   stim = STIMULI.setup.(stim_fs{i});
-  if ( ~isstruct(stim) ), continue; end;
+  if ( ~isstruct(stim) ), continue; end
   if ( ~isfield(stim, 'class') ), continue; end
   switch ( stim.class )
     case 'Rectangle'
       stim_ = Rectangle( windex, wrect, stim.size );
     case 'Image'
-      im = stim.image_matrix;
+      if ( isfield(stim, 'image_matrix') )
+        im = stim.image_matrix;
+      else
+        im = [];
+      end
       stim_ = Image( windex, wrect, stim.size, im );
   end
   stim_.color = stim.color;
