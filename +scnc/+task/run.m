@@ -276,27 +276,36 @@ while ( true )
       events.fixation_onset = TIMER.get_time( 'task' );
     end
     
-    if ( ~logged_entry && fix_square.in_bounds() )
-      events.fixation_entered = TIMER.get_time( 'task' );
-      logged_entry = true;
-    end
+    if ( STIMULI.setup.fix_square.has_target )
+      %   Use fixation target
+      if ( ~logged_entry && fix_square.in_bounds() )
+        events.fixation_entered = TIMER.get_time( 'task' );
+        logged_entry = true;
+      end
 
-    if ( fix_square.duration_met() )
-      LOG_DEBUG( 'fixation-met', 'event', opts );
-      entered_target = true;
-      cstate = 'present_targets';
-      acquired_initial_fixation = true;
-      first_entry = true;
-    elseif ( entered_target && ~fix_square.in_bounds() )
-      errors.broke_initial_fixation = true;
-      cstate = 'new_trial';
-      first_entry = true;
-    end
+      if ( fix_square.duration_met() )
+        LOG_DEBUG( 'fixation-met', 'event', opts );
+        entered_target = true;
+        cstate = 'present_targets';
+        acquired_initial_fixation = true;
+        first_entry = true;
+      elseif ( entered_target && ~fix_square.in_bounds() )
+        errors.broke_initial_fixation = true;
+        cstate = 'new_trial';
+        first_entry = true;
+      end
 
-    if ( TIMER.duration_met(cstate) && ~entered_target )
-      errors.initial_fixation_not_entered = true;
-      cstate = 'iti';
-      first_entry = true;
+      if ( TIMER.duration_met(cstate) && ~entered_target )
+        errors.initial_fixation_not_entered = true;
+        cstate = 'iti';
+        first_entry = true;
+      end
+    else
+      %   Just wait for the state to end.
+      if ( TIMER.duration_met(cstate) )
+        cstate = 'present_targets';
+        first_entry = true;
+      end
     end
   end
   

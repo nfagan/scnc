@@ -102,7 +102,7 @@ TIMINGS.time_in = time_in;
 STIMULI = struct();
 STIMULI.setup = struct();
 
-non_editable_properties = {{ 'placement', 'has_target', 'image_matrix' }};
+non_editable_properties = {{ 'placement', 'image_matrix' }};
 
 STIMULI.setup.fix_square = struct( ...
     'class',            'Rectangle' ...
