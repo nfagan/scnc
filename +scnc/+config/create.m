@@ -58,7 +58,7 @@ INTERFACE.gui_fields.exclude = { 'stop_key', 'reward_key', 'debug_tags' };
 % STRUCTURE
 STRUCTURE = struct();
 STRUCTURE.trial_type = 'congruent';
-STRUCTURE.is_masked = 0;
+STRUCTURE.is_masked = false;
 STRUCTURE.is_two_targets = true;
 STRUCTURE.randomization_block_size = 6;
 STRUCTURE.trial_block_size = 55;
@@ -72,6 +72,8 @@ STRUCTURE.show_break_images = false;
 STRUCTURE.randomization_id = 'a';
 STRUCTURE.stop_criterion = 'scnc.util.default_stop_criterion';
 STRUCTURE.debug_stimuli_size = false;
+STRUCTURE.show_feedback = true;
+STRUCTURE.show_break_text = false;
 
 %	SCREEN
 SCREEN = struct();
@@ -147,6 +149,7 @@ STIMULI.setup.no_choice_indicator = struct( ...
   , 'color',            [ 255, 0, 0 ] ...
   , 'placement',        'center-right' ...
   , 'has_target',       false ...
+  , 'visible',          true ...
   , 'non_editable',     non_editable_properties ...
 );
 

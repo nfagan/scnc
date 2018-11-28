@@ -164,7 +164,7 @@ panels.run = uipanel( F ...
   , 'Position', [ X, Y, W, L ] ...
 );
 
-funcs = { 'load', 'clean-up', 'Start' };
+funcs = { 'save-as', 'load', 'clean-up', 'Start' };
 
 w = .5;
 l = 1 / numel(funcs);
@@ -229,6 +229,9 @@ function handle_button(source, event)
     case 'load'
       load_new_config_file();
       
+    case 'save-as'
+      save_current_config_file();
+      
     case 'clean-up'
       scnc.config.save( config );
       scnc.task.cleanup();
@@ -249,6 +252,16 @@ function handle_button(source, event)
     otherwise
       error( 'Unrecognized identifier ''%s''', source.String );
   end
+end
+
+function save_current_config_file()
+  
+  %   SAVE_CURRENT_CONFIG_FILE -- Save the current config file to a new file.
+  
+  [fname, path] = uiputfile( {'*.mat','MAT-files (*.mat)' } );
+  if ( fname == 0 ), return; end
+  save( fullfile(path, fname), 'config' );
+  
 end
 
 function load_new_config_file()

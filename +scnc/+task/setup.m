@@ -276,7 +276,7 @@ assert( all(isfield(structure, req_fields)) ...
   , 'STRUCTURE is missing one of required fields: %s' ...
   , strjoin(req_fields, ', ') );
 
-validatestring( structure.trial_type, {'congruent', 'incongruent'} );
+validatestring( structure.trial_type, {'congruent', 'incongruent', 'objective'} );
 
 end
 

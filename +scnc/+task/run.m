@@ -63,6 +63,10 @@ PERFORMANCE.n_unselected = 0;
 
 reward_timer = nan;
 
+if ( INTERFACE.use_mouse )
+  HideCursor();
+end
+
 while ( true )
   if ( isnan(tracker_sync.timer) || toc(tracker_sync.timer) >= tracker_sync.interval )
     TRACKER.send( 'RESYNCH' );
@@ -173,20 +177,6 @@ while ( true )
       
       TRIAL_BLOCK_INDEX = 1;
     end
-    
-%     if ( TRIAL_BLOCK_INDEX > STRUCTURE.trial_block_size )
-%       TRIAL_BLOCK_INDEX = 1;
-%       BLOCK_NUMBER = BLOCK_NUMBER + 1;
-%       
-%     elseif ( should_increment_trial_block )
-%       TRIAL_BLOCK_INDEX = TRIAL_BLOCK_INDEX + 1;
-%       
-%       if ( TRIAL_BLOCK_INDEX == STRUCTURE.trial_block_size )
-%         if ( STRUCTURE.use_break )
-%           next_state = 'break_display_image';
-%         end
-%       end
-%     end
     
     if ( STRUCTURE.debug_stimuli_size )
       next_state = 'debug_stimuli_size';
@@ -301,6 +291,9 @@ while ( true )
         first_entry = true;
       end
     else
+      acquired_initial_fixation = true;
+      entered_target = true;
+      
       %   Just wait for the state to end.
       if ( TIMER.duration_met(cstate) )
         cstate = 'present_targets';
@@ -347,6 +340,10 @@ while ( true )
       %   bridge reward
       comm.reward( 1, REWARDS.bridge );
       
+      if ( INTERFACE.use_mouse )
+        SetMouse( opts.WINDOW.center(1), opts.WINDOW.center(2) );
+      end
+      
       s1 = STIMULI.left_image1;
       s2 = STIMULI.right_image1;
       
@@ -360,6 +357,10 @@ while ( true )
       
       pre_mask_delay = opts.TIMINGS.time_in.pre_mask_delay;
       
+      if ( INTERFACE.use_mouse )
+        [last_x, last_y] = GetMouse();
+      end
+      
       entered_target = false;
       broke_target = false;
       entered_target_index = nan;
@@ -368,6 +369,14 @@ while ( true )
       did_show_mask = false;
       logged_entry = false;
       first_entry = false;
+    end
+    
+    if ( INTERFACE.use_mouse )
+      [curr_x, curr_y] = GetMouse();
+      
+      if ( curr_x ~= last_x || curr_y ~= last_y )
+        ShowCursor();
+      end
     end
 
     if ( ~drew_stimulus )
@@ -413,7 +422,12 @@ while ( true )
       if ( stim.duration_met() )
         LOG_DEBUG( sprintf('chose: %d', i), 'event', opts );
         selected_target_index = direction_indices(i);
-        cstate = 'choice_feedback';
+        
+        if ( STRUCTURE.show_feedback )
+          cstate = 'choice_feedback';
+        else
+          cstate = 'iti';
+        end
         
         events.target_acquired = TIMER.get_time( 'task' );
         break;
@@ -425,8 +439,17 @@ while ( true )
     ok_crit_met = ~isnan( selected_target_index );    
 
     if ( ok_crit_met || error_crit_met )
-      cstate = 'choice_feedback';
+      if ( STRUCTURE.show_feedback )
+        cstate = 'choice_feedback';
+      else
+        cstate = 'iti';
+      end
+      
       first_entry = true;
+      
+      if ( INTERFACE.use_mouse )
+        HideCursor();
+      end
     end
   end
   
@@ -484,8 +507,11 @@ while ( true )
       
       if ( ~made_select )
         mask_color = [ STIMULI.setup.no_choice_indicator.color, 125 ];
-        Screen( 'FillRect', WINDOW.index, mask_color ...
-          , current_stimuli{use_correct_image_index}.vertices );
+        
+        if ( STIMULI.setup.no_choice_indicator.visible )
+          Screen( 'FillRect', WINDOW.index, mask_color ...
+            , current_stimuli{use_correct_image_index}.vertices );
+        end
       end
       
       Screen( 'flip', WINDOW.index );
@@ -557,6 +583,15 @@ while ( true )
       
       if ( STRUCTURE.show_break_images )
         cellfun( @(x) x.draw(), current_stimuli );
+      end
+      
+      if ( STRUCTURE.show_break_text )
+        break_text = sprintf( 'BREAK: %d seconds.', opts.TIMINGS.time_in.(cstate) );
+        w_center = WINDOW.center;
+        Screen( 'DrawText', WINDOW.index, break_text, w_center(1), w_center(2) );
+      end
+      
+      if ( STRUCTURE.show_break_images || STRUCTURE.show_break_text )
         Screen( 'flip', WINDOW.index );
       end
       
@@ -592,6 +627,11 @@ try
   print_performance( PERFORMANCE, opts );
 catch err
   warning( err.message );
+end
+
+try
+  Screen( 'Flip', opts.WINDOW.index );
+catch err
 end
 
 s = warning( 'off', 'all' );
@@ -679,7 +719,12 @@ end
 
 function img_outs = get_current_images(images, direction, trial_type, is_masked)
 
-base_images = images.(trial_type);
+if ( strcmp(trial_type, 'objective') )
+  base_images = images.incongruent;
+else
+  base_images = images.(trial_type);
+end
+
 image_types = base_images(:, 1);
 
 subdirs = { 'cue', 'error', 'success' };
@@ -797,7 +842,7 @@ end
 
 function ind = get_correct_image_index(current_direction, trial_type)
 
-if ( strcmp(trial_type, 'congruent') )
+if ( strcmp(trial_type, 'congruent') || strcmp(trial_type, 'objective') )
   inds = [1, 2];
 else
   assert( strcmp(trial_type, 'incongruent') );
