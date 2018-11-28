@@ -52,6 +52,7 @@ INTERFACE.is_debug = true;
 INTERFACE.use_sounds = true;
 INTERFACE.save = true;
 INTERFACE.skip_sync_tests = false;
+INTERFACE.use_auto_paths = true;
 INTERFACE.debug_tags = 'all';
 INTERFACE.gui_fields.exclude = { 'stop_key', 'reward_key', 'debug_tags' };
 

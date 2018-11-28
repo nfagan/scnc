@@ -25,6 +25,13 @@ catch err
   warning( err.message );
 end
 
+try
+  KbName( 'UnifyKeyNames' );
+  opts.INTERFACE.stop_key = KbName( 'escape' );
+catch err
+  warning( err.message );
+end
+
 has_ptb = ~isempty( which('Screen') );
 
 if ( opts.INTERFACE.skip_sync_tests && has_ptb )
@@ -44,7 +51,13 @@ catch err
   throw( err );
 end
 
-root_data_path = fullfile( opts.PATHS.data, datestr(now, 'mmddyy') );
+if ( opts.INTERFACE.use_auto_paths )
+  data_path = fullfile( scnc.util.get_project_folder(), 'data' );
+else
+  data_path = opts.PATHS.data;
+end
+
+root_data_path = fullfile( data_path, datestr(now, 'mmddyy') );
 opts.PATHS.current_data_root = root_data_path;
 
 shared_utils.io.require_dir( root_data_path );

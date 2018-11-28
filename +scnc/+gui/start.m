@@ -280,6 +280,8 @@ function load_new_config_file()
     return
   end
   
+  config = scnc.config.reconcile( config );
+  
   scnc.config.save( config );
   scnc.gui.start( F );
 end
