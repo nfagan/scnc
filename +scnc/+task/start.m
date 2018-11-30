@@ -1,5 +1,5 @@
 
-function err = start(conf)
+function err = start(conf, task_func)
 
 %   START -- Attempt to setup and run the task.
 %
@@ -13,21 +13,24 @@ else
   scnc.util.assertions.assert__is_config( conf );
 end
 
+if ( nargin < 2 )
+  task_func = @scnc.task.run;
+end
+
 try
   opts = scnc.task.setup( conf );
 catch err
   scnc.task.cleanup();
-  scnc.util.print_error_stack( err );
-  return;
+  throw( err );
 end
 
 try
   err = 0;
-  scnc.task.run( opts );
+  task_func( opts );
   scnc.task.cleanup();
 catch err
   scnc.task.cleanup();
-  scnc.util.print_error_stack( err );
+  throw( err );
 end
 
 end

@@ -1,5 +1,5 @@
 
-function missing = diff(saved_conf, display)
+function missing = diff(saved_conf, display, created_conf)
 
 %   DIFF -- Return missing fields in the saved config file.
 %
@@ -27,7 +27,7 @@ if ( nargin < 1 || isempty(saved_conf) )
 else
   scnc.util.assertions.assert__is_config( saved_conf );
 end
-if ( nargin < 2 )
+if ( nargin < 2 || isempty(display) )
   if ( nargout == 0 )
     display = true;
   else
@@ -38,7 +38,11 @@ else
     , class(display) );
 end
 
-created_conf = scnc.config.create( false ); % false to not save conf
+if ( nargin < 3 )
+  created_conf = scnc.config.create( false ); % false to not save conf
+else
+  scnc.util.assertions.assert__is_config( created_conf );
+end
 
 missing = get_missing( created_conf, saved_conf, '', 0, {}, display );
 

@@ -164,7 +164,7 @@ panels.run = uipanel( F ...
   , 'Position', [ X, Y, W, L ] ...
 );
 
-funcs = { 'save-as', 'load', 'clean-up', 'Start' };
+funcs = { 'save-as', 'load', 'clean-up' 'start' };
 
 w = .5;
 l = 1 / numel(funcs);
@@ -221,10 +221,10 @@ function handle_button(source, event)
   %   HANDLE_BUTTON -- Handle button clicks.
   
   func = source.String;
-  switch ( func )
-    case 'Start'
+  switch ( func )    
+    case 'start'
       scnc.config.save( config );
-      scnc.task.start( config );
+      scnc.task.start( config, @scnc.task.run );
       
     case 'load'
       load_new_config_file();

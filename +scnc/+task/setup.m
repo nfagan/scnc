@@ -86,8 +86,14 @@ TIMER.register( opts.TIMINGS.time_in );
 
 stimuli_p = fullfile( scnc.util.get_project_folder(), 'stimuli' );
 
-image_p = fullfile( stimuli_p, 'images' );
-image_info = get_images( image_p, opts.INTERFACE.is_debug, 4 );
+switch ( STRUCTURE.task_type )
+  case 'rt'
+    image_info = get_rt_image_info( stimuli_p, opts.INTERFACE.is_debug );
+  case 'c-nc'
+    image_info = get_cnc_image_info( stimuli_p, opts.INTERFACE.is_debug );
+  otherwise
+    error( 'Unrecognized task type "%s".', task_type );
+end
 
 %   STIMULI
 stim_fs = fieldnames( STIMULI.setup );
@@ -155,6 +161,20 @@ opts.SERIAL = SERIAL;
 opts.IMAGES = image_info;
 opts.SOUNDS = sounds;
 opts.RAND = RAND;
+
+end
+
+function image_info = get_cnc_image_info(stimuli_p, is_debug)
+
+image_p = fullfile( stimuli_p, 'cnc-images' );
+image_info = get_images( image_p, is_debug, 4 );
+
+end
+
+function image_info = get_rt_image_info(stimuli_p, is_debug)
+
+image_p = fullfile( stimuli_p, 'rt-images' );
+image_info = get_images( image_p, is_debug, 6 );
 
 end
 
@@ -290,6 +310,13 @@ assert( all(isfield(structure, req_fields)) ...
   , strjoin(req_fields, ', ') );
 
 validatestring( structure.trial_type, {'congruent', 'incongruent', 'objective'} );
+validatestring( structure.task_type, {'c-nc', 'rt'} );
+validatestring( structure.rt_conscious_type, {'conscious', 'nonconscious'} );
+
+if ( strcmp(structure.task_type, 'rt') )
+  validateattributes( structure.rt_n_lr, {'double'}, {'even', 'scalar'}, 'rt_n_lr' );
+  validateattributes( structure.rt_n_two, {'double'}, {'even', 'scalar'}, 'rt_n_lr' );
+end
 
 end
 

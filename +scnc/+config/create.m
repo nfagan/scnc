@@ -58,9 +58,13 @@ INTERFACE.gui_fields.exclude = { 'stop_key', 'reward_key', 'debug_tags' };
 
 % STRUCTURE
 STRUCTURE = struct();
+STRUCTURE.task_type = 'c-nc';
+STRUCTURE.rt_conscious_type = 'conscious';
 STRUCTURE.trial_type = 'congruent';
 STRUCTURE.is_masked = false;
 STRUCTURE.is_two_targets = true;
+STRUCTURE.rt_n_lr = 8;
+STRUCTURE.rt_n_two = 2;
 STRUCTURE.randomization_block_size = 6;
 STRUCTURE.trial_block_size = 55;
 STRUCTURE.track_n_previous_trials = 25;
@@ -92,6 +96,8 @@ time_in.new_trial = 0;
 time_in.fixation = 2;
 time_in.task = Inf;
 time_in.present_targets = 5;
+time_in.rt_present_targets = 5;
+time_in.rt_response = 5;
 time_in.choice_feedback = 1;
 time_in.pre_mask_delay = 1e-7;  % short as possible; usually will be 16.666 ms
 time_in.iti = 1;
