@@ -509,7 +509,7 @@ while ( true )
       masked_timer = tic();
       drew_stimulus = true;
       
-      events.target_onset = TIMER.get_time( 'task' );
+      events.cue_onset = TIMER.get_time( 'task' );
     end
     
     if ( ~did_show_mask && toc(masked_timer) > pre_mask_delay )      
@@ -893,9 +893,9 @@ while ( true )
     end
     
     if ( ~drew_stimulus )
-      last_index = configure_break_image( break_img, IMAGES, last_index );
       
       if ( STRUCTURE.show_break_images )
+        last_index = configure_break_image( break_img, IMAGES, last_index );
         cellfun( @(x) x.draw(), current_stimuli );
       end
       
