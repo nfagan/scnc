@@ -47,6 +47,7 @@ INTERFACE.stop_key = KbName( 'escape' );
 INTERFACE.reward_key = KbName( 'r' );
 INTERFACE.use_mouse = true;
 INTERFACE.use_reward = false;
+INTERFACE.allow_hide_mouse = true;
 INTERFACE.use_brains_arduino = false;
 INTERFACE.is_debug = true;
 INTERFACE.use_sounds = true;

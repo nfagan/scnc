@@ -56,6 +56,7 @@ panels.interface = uipanel( F ...
 
 % - Check boxes
 interface_fs = get_gui_fields( config.INTERFACE );
+interface_fs = interface_fs( check_is_checkbox_convertible(config.INTERFACE, interface_fs) );
 
 w = .5;
 l = 1 / numel(interface_fs);
@@ -859,6 +860,22 @@ if ( ~isfield(S.gui_fields, 'include') )
 else
   fs = S.gui_fields.include;
 end
+
+end
+
+function tf = check_is_checkbox_convertible(s, f)
+
+tf = false( size(f) );
+
+for i = 1:numel(f)
+  tf(i) = is_checkbox_convertible( s.(f{i}) );
+end
+
+end
+
+function tf = is_checkbox_convertible(v)
+
+tf = isscalar( v ) && ( islogical(v) || ismember(v, [0, 1]) );
 
 end
 

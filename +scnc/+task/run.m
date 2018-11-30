@@ -54,7 +54,7 @@ PERFORMANCE.n_unselected = 0;
 
 reward_timer = nan;
 
-if ( INTERFACE.use_mouse )
+if ( INTERFACE.use_mouse && INTERFACE.allow_hide_mouse )
   HideCursor();
 end
 
@@ -493,8 +493,9 @@ while ( true )
       remaining_time = opts.TIMINGS.time_in.(cstate);
       
       if ( strcmp(STRUCTURE.rt_conscious_type, 'conscious') )
+        tmp_pre_mask = pre_mask_delay;
         pre_mask_delay = remaining_time;
-        remaining_time = pre_mask_delay;
+        remaining_time = tmp_pre_mask;
       end
       
       drew_stimulus = false;
@@ -506,10 +507,11 @@ while ( true )
     if ( ~drew_stimulus )
       cellfun( @(x) x.draw(), current_cues );
       Screen( 'flip', WINDOW.index );
-      masked_timer = tic();
-      drew_stimulus = true;
       
       events.cue_onset = TIMER.get_time( 'task' );
+      
+      masked_timer = tic();
+      drew_stimulus = true;
     end
     
     if ( ~did_show_mask && toc(masked_timer) > pre_mask_delay )      
@@ -523,11 +525,10 @@ while ( true )
       
       events.mask_onset = TIMER.get_time( 'task' );
       
-      TIMER.set_durations( cstate, remaining_time );
-      TIMER.reset_timers( cstate );
+      remaining_timer = tic();
     end
     
-    if ( did_show_mask && TIMER.duration_met(cstate) )
+    if ( did_show_mask && toc(remaining_timer) >= remaining_time )      
       cstate = 'rt_response';
       first_entry = true;
     end
@@ -577,6 +578,9 @@ while ( true )
     if ( ~drew_stimulus )
       cellfun( @(x) x.draw(), current_cues );
       Screen( 'Flip', opts.WINDOW.index );
+      
+      events.rt_target_onset = TIMER.get_time( 'task' );
+      
       drew_stimulus = true;
       rt_timer = tic;
     end
@@ -632,13 +636,14 @@ while ( true )
       
       first_entry = true;
       
-      if ( INTERFACE.use_mouse )
+      if ( INTERFACE.use_mouse && INTERFACE.allow_hide_mouse )
         HideCursor();
       end
     end
     
     if ( TIMER.duration_met(cstate) )
       cstate = 'choice_feedback';
+      first_entry = true;
     end
   end
   
@@ -761,7 +766,7 @@ while ( true )
       
       first_entry = true;
       
-      if ( INTERFACE.use_mouse )
+      if ( INTERFACE.use_mouse && INTERFACE.allow_hide_mouse )
         HideCursor();
       end
     end
@@ -825,6 +830,7 @@ while ( true )
         if ( STIMULI.setup.no_choice_indicator.visible )
           Screen( 'FillRect', WINDOW.index, mask_color ...
             , current_stimuli{use_correct_image_index}.vertices );
+          fprintf( '\n Drawing ... ' );
         end
       end
       
