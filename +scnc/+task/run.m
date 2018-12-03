@@ -51,8 +51,13 @@ PERFORMANCE.n_initiated = 0;
 PERFORMANCE.n_uninitiated = 0;
 PERFORMANCE.n_selected = 0;
 PERFORMANCE.n_unselected = 0;
+PERFORMANCE.one_star_rt = nan;
+PERFORMANCE.one_star_rt_stp = 1;
+PERFORMANCE.two_star_rt = nan;
+PERFORMANCE.two_star_rt_stp = 1;
 
 reward_timer = nan;
+rt = nan;
 
 if ( INTERFACE.use_mouse && INTERFACE.allow_hide_mouse )
   HideCursor();
@@ -148,6 +153,7 @@ while ( true )
       last_trial_n = TRIAL_NUMBER;
       last_made_selection = made_selection;
       last_acquired_fixation = acquired_initial_fixation;
+      last_rt = rt;
     else
       should_increment_rand_block = true;
       should_increment_trial_block = false;
@@ -158,7 +164,7 @@ while ( true )
     TRIAL_NUMBER = TRIAL_NUMBER + 1;
     
     if ( ~is_first_trial && last_made_selection )
-      PERFORMANCE = update_performance( PERFORMANCE, was_correct );
+      PERFORMANCE = update_performance( PERFORMANCE, was_correct, current_direction, last_rt );
     end
     
     stop_criterion_met = false;
@@ -277,6 +283,7 @@ while ( true )
       last_trial_n = TRIAL_NUMBER;
       last_made_selection = made_selection;
       last_acquired_fixation = acquired_initial_fixation;
+      last_rt = rt;
     else
       should_increment_rand_block = true;
       should_increment_trial_block = false;
@@ -287,7 +294,7 @@ while ( true )
     TRIAL_NUMBER = TRIAL_NUMBER + 1;
     
     if ( ~is_first_trial && last_made_selection )
-      PERFORMANCE = update_performance( PERFORMANCE, was_correct );
+      PERFORMANCE = update_performance( PERFORMANCE, was_correct, current_direction, last_rt );
     end
     
     stop_criterion_met = false;
@@ -489,14 +496,17 @@ while ( true )
       current_cues = { s1, s2 };
       cellfun( @(x) x.reset_targets(), current_cues );
       
-      pre_mask_delay = opts.TIMINGS.time_in.pre_mask_delay;
-      remaining_time = opts.TIMINGS.time_in.(cstate);
+      pre_mask_delay = opts.TIMINGS.time_in.(cstate);
+      remaining_time = opts.TIMINGS.time_in.pre_mask_delay;
       
-      if ( strcmp(STRUCTURE.rt_conscious_type, 'conscious') )
-        tmp_pre_mask = pre_mask_delay;
-        pre_mask_delay = remaining_time;
-        remaining_time = tmp_pre_mask;
-      end
+%       pre_mask_delay = opts.TIMINGS.time_in.pre_mask_delay;
+%       remaining_time = opts.TIMINGS.time_in.(cstate);
+      
+%       if ( strcmp(STRUCTURE.rt_conscious_type, 'conscious') )
+%         tmp_pre_mask = pre_mask_delay;
+%         pre_mask_delay = remaining_time;
+%         remaining_time = tmp_pre_mask;
+%       end
       
       drew_stimulus = false;
       did_show_mask = false;
@@ -534,6 +544,28 @@ while ( true )
     end
   end
   
+  %%  STATE rt_delay
+  if ( strcmp(cstate, 'rt_pre_response_delay') )
+    current_pre_response_delay = opts.TIMINGS.time_in.(cstate);
+    
+    if ( current_pre_response_delay > 0 )
+      if ( first_entry )
+        Screen( 'Flip', opts.WINDOW.index );
+
+        cstate_timer = tic();
+        first_entry = false;
+      end
+
+      if ( toc(cstate_timer) >= current_pre_response_delay )
+        cstate = 'rt_response';
+        first_entry = true;
+      end
+    else
+      cstate = 'rt_response';
+      first_entry = true;
+    end
+  end
+  
   %%  STATE rt_response
   if ( strcmp(cstate, 'rt_response') )
     if ( first_entry )
@@ -558,6 +590,16 @@ while ( true )
       current_cues = { s1, s2 };
       cellfun( @(x) x.reset_targets(), current_cues );
       
+      if ( ~STRUCTURE.rt_show_mask_target )
+        if ( strcmp(correct_direction, 'left') )
+          draw_cues = { s1 };
+        else
+          draw_cues = { s2 };
+        end
+      else
+        draw_cues = current_cues;
+      end
+      
       entered_target = false;
       broke_target = false;
       entered_target_index = nan;
@@ -576,7 +618,7 @@ while ( true )
     end
     
     if ( ~drew_stimulus )
-      cellfun( @(x) x.draw(), current_cues );
+      cellfun( @(x) x.draw(), draw_cues );
       Screen( 'Flip', opts.WINDOW.index );
       
       events.rt_target_onset = TIMER.get_time( 'task' );
@@ -813,6 +855,14 @@ while ( true )
         use_correct_image_index = correct_image_index;
       end
       
+      if ( ~STRUCTURE.rt_show_mask_target )
+        if ( strcmp(correct_direction, 'left') )
+          current_stimuli = { s1 };
+        else
+          current_stimuli = { s2 };
+        end
+      end
+      
       drew_stimulus = false;
       first_entry = false;
     end
@@ -943,6 +993,7 @@ try
   LOG_DEBUG( sprintf('WAS CORRECT:   %d', last_was_correct), 'performance', opts );
   LOG_DEBUG( sprintf('FIX ACQUIRED:  %d', last_acquired_fixation), 'performance', opts );
   LOG_DEBUG( sprintf('DID SELECT:    %d', last_made_selection), 'performance', opts );
+  LOG_DEBUG( sprintf('LAST RT:       %0.3f', last_rt), 'performance', opts );
   
   print_performance( PERFORMANCE, opts );
 catch err
@@ -988,8 +1039,8 @@ end
       LOG_DEBUG( sprintf('WAS CORRECT:   %d', last_was_correct), 'performance', opts );
       LOG_DEBUG( sprintf('FIX ACQUIRED:  %d', last_acquired_fixation), 'performance', opts );
       LOG_DEBUG( sprintf('DID SELECT:    %d', last_made_selection), 'performance', opts );
-
-
+      LOG_DEBUG( sprintf('LAST RT:       %0.3f', last_rt), 'performance', opts );
+      
       print_performance( PERFORMANCE, opts );
     catch err
       warning( err.message );
@@ -1326,7 +1377,7 @@ inds(randperm(N, n_two)) = 2;
 
 end
 
-function perf = update_performance(perf, was_correct)
+function perf = update_performance(perf, was_correct, rt_type, last_rt)
 
 ind = perf.index;
 N = perf.end;
@@ -1345,6 +1396,25 @@ perf.p_correct = nnz( perf.was_correct ) / ind;
 perf.index = ind + 1;
 perf.n_correct = perf.n_correct + double( was_correct );
 perf.n_incorrect = perf.n_incorrect + double( ~was_correct );
+
+if ( strcmp(rt_type, 'two') )
+  fname = 'two_star_rt';
+  stpname = 'two_star_rt_stp';
+else
+  fname = 'one_star_rt';
+  stpname = 'one_star_rt_stp';
+end
+
+if ( isnan(last_rt) )
+  return;
+end
+
+if ( isnan(perf.(fname)) )
+  perf.(fname) = last_rt;
+end
+
+perf.(fname) = (perf.(fname) * perf.(stpname) + last_rt) / (perf.(stpname) + 1);
+perf.(stpname) = perf.(stpname) + 1;
 
 end
 
@@ -1417,5 +1487,7 @@ LOG_DEBUG( sprintf('N INITIATED:   %d', PERFORMANCE.n_initiated), 'performance',
 LOG_DEBUG( sprintf('N UNINITIATED: %d', PERFORMANCE.n_uninitiated), 'performance', opts );
 LOG_DEBUG( sprintf('N SELECTED:    %d', PERFORMANCE.n_selected), 'performance', opts );
 LOG_DEBUG( sprintf('N UNSELECTED:  %d', PERFORMANCE.n_unselected), 'performance', opts );
+LOG_DEBUG( sprintf('ONE_STAR_RT:   %0.3f', PERFORMANCE.one_star_rt), 'performance', opts );
+LOG_DEBUG( sprintf('TWO_STAR_RT:   %0.3f', PERFORMANCE.two_star_rt), 'performance', opts );
 
 end

@@ -80,6 +80,7 @@ STRUCTURE.stop_criterion = 'scnc.util.default_stop_criterion';
 STRUCTURE.debug_stimuli_size = false;
 STRUCTURE.show_feedback = true;
 STRUCTURE.show_break_text = false;
+STRUCTURE.rt_show_mask_target = true;
 
 %	SCREEN
 SCREEN = struct();
@@ -101,6 +102,7 @@ time_in.rt_present_targets = 5;
 time_in.rt_response = 5;
 time_in.choice_feedback = 1;
 time_in.pre_mask_delay = 1e-7;  % short as possible; usually will be 16.666 ms
+time_in.rt_pre_response_delay = 0.4;
 time_in.iti = 1;
 time_in.break_display_image = 30;
 time_in.cycle_break_image = 5;
