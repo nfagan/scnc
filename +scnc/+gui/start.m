@@ -165,7 +165,7 @@ panels.run = uipanel( F ...
   , 'Position', [ X, Y, W, L ] ...
 );
 
-funcs = { 'save-as', 'load', 'clean-up' 'start' };
+funcs = { 'refresh', 'save-as', 'load', 'clean-up' 'start' };
 
 w = .5;
 l = 1 / numel(funcs);
@@ -222,7 +222,8 @@ function handle_button(source, event)
   %   HANDLE_BUTTON -- Handle button clicks.
   
   func = source.String;
-  switch ( func )    
+  
+  switch ( func )
     case 'start'
       scnc.config.save( config );
       scnc.task.start( config, @scnc.task.run );
@@ -236,20 +237,29 @@ function handle_button(source, event)
     case 'clean-up'
       scnc.config.save( config );
       scnc.task.cleanup();
+      
     case 'reset to default'
       config = scnc.config.load( '-default' );
       scnc.config.save( config );
       clf( F );
       scnc.gui.start( F );
+      
     case 'check latest edf'
       scnc.config.save( config );
       scnc.util.check_latest_edf();
+      
     case 'make default'
       scnc.config.save( config, '-default' );
+      
     case 'hard reset'
       scnc.config.create( true );
       clf( F );
       scnc.gui.start( F );
+      
+    case 'refresh'
+      clf( F );
+      scnc.gui.start( F );
+      
     otherwise
       error( 'Unrecognized identifier ''%s''', source.String );
   end

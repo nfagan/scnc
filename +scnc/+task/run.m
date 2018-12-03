@@ -225,14 +225,20 @@ while ( true )
     
     if ( ~strcmp(current_direction, 'two') )
       correct_direction = char( setdiff(DIRECTIONS, current_direction) );
-      correct_image_index = get_correct_image_index( correct_direction, trial_type );      
     else
       correct_direction = CONDITIONS.matrix{current_condition_index, 2};
-      correct_image_index = get_correct_image_index( correct_direction, trial_type );
 %       correct_image_index = direction_indices( randi(numel(direction_indices), 1) );
     end
     
-    current_images = get_rt_current_images( IMAGES, current_direction, correct_direction );
+    correct_image_index = get_correct_image_index( correct_direction, trial_type );
+    
+    rt_is_two_targets = STRUCTURE.rt_is_two_targets;
+    
+    if ( rt_is_two_targets )
+      current_images = get_rt_current_images_two_targets( IMAGES, current_direction, correct_direction, trial_type );
+    else
+      current_images = get_rt_current_images( IMAGES, current_direction, correct_direction );
+    end
     
     % assign cues
     assign_images( cue1, cue2, current_images.left_cue_image, current_images.right_cue_image );
@@ -1105,6 +1111,94 @@ if ( nargin > 2 )
 end
 
 img.image = img_matrices{ind};
+
+end
+
+function img_outs = get_rt_current_images_two_targets(images, direction, correct_direction, trial_type)
+
+assert( strcmp(trial_type, 'congruent') ...
+  , sprintf('Expected trial type to be congruent; was "%s".', trial_type) );
+
+cues = images.cue;
+cue_names = cues{:, end-1};
+cue_images = cues{:, end};
+
+cue_name = sprintf( '%s_cue', direction );
+[cuel, cuel_name, cuer, cuer_name] = get_image( cue_images, cue_names, cue_name );
+
+masks = images.mask;
+mask_names = masks{:, end-1};
+mask_images = masks{end};
+
+mask_name = 'two_masks';
+[mask_cuel, mask_cuel_name, mask_cuer, mask_cuer_name] = get_image( mask_images, mask_names, mask_name );
+
+targets = images.target;
+target_names = targets{:, end-1};
+target_images = targets{:, end};
+
+[targl, targl_name, ~, ~] = get_image( target_images, target_names, 'left_chest' );
+[~, ~, targr, targr_name] = get_image( target_images, target_names, 'right_chest' );
+
+success_cues = images.success;
+success_cue_names = success_cues{:, end-1};
+success_cue_images = success_cues{:, end};
+
+err_cues = images.error;
+err_cue_names = err_cues{:, end-1};
+err_cue_images = err_cues{:, end};
+
+if ( strcmp(correct_direction, 'left') )
+  [scc_l, scc_l_name, ~, ~] = get_image( success_cue_images, success_cue_names, 'treatL' );
+  scc_r = targr;
+  scc_r_name = targr_name;
+else
+  assert( strcmp(correct_direction, 'right') );
+  
+  [~, ~, scc_r, scc_r_name] = get_image( success_cue_images, success_cue_names, 'treatR' );
+  scc_l = targl;
+  scc_l_name = targl_name;
+end
+
+if ( strcmp(correct_direction, 'left') )  
+  [~, ~, err_r, err_r_name] = get_image( err_cue_images, err_cue_names, 'rt_incorrect' );
+  
+  err_l = targl;
+  err_l_name = targl_name;
+else
+  assert( strcmp(correct_direction, 'right') );
+  
+  [err_l, err_l_name, ~, ~] = get_image( err_cue_images, err_cue_names, 'rt_incorrect' );
+  
+  err_r = targr;
+  err_r_name = targr_name;
+end
+
+img_outs = struct();
+img_outs.left_cue_image = cuel;
+img_outs.right_cue_image = cuer;
+img_outs.left_cue_image_name = cuel_name;
+img_outs.right_cue_image_name = cuer_name;
+
+img_outs.left_response_image = targl;
+img_outs.right_response_image = targr;
+img_outs.left_response_image_name = targl_name;
+img_outs.right_response_image_name = targr_name;
+
+img_outs.left_mask_cue_image = mask_cuel;
+img_outs.right_mask_cue_image = mask_cuer;
+img_outs.left_mask_cue_image_name = mask_cuel_name;
+img_outs.right_mask_cue_image_name = mask_cuer_name;
+
+img_outs.left_err_image = err_l;
+img_outs.right_err_image = err_r;
+img_outs.left_err_image_name = err_l_name;
+img_outs.right_err_image_name = err_r_name;
+
+img_outs.left_success_image = scc_l;
+img_outs.right_success_image = scc_r;
+img_outs.left_success_image_name = scc_l_name;
+img_outs.right_success_image_name = scc_r_name;  
 
 end
 

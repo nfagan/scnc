@@ -81,6 +81,7 @@ STRUCTURE.debug_stimuli_size = false;
 STRUCTURE.show_feedback = true;
 STRUCTURE.show_break_text = false;
 STRUCTURE.rt_show_mask_target = true;
+STRUCTURE.rt_is_two_targets = false;
 
 %	SCREEN
 SCREEN = struct();
