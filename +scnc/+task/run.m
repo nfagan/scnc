@@ -630,7 +630,7 @@ while ( true )
       events.rt_target_onset = TIMER.get_time( 'task' );
       
       drew_stimulus = true;
-      rt_timer = tic;
+%       rt_timer = tic;
     end
     
     for i = 1:numel(current_cues)
@@ -645,7 +645,7 @@ while ( true )
           if ( ~logged_entry )
             events.target_entered = TIMER.get_time( 'task' );
             
-            rt = toc( rt_timer );
+%             rt = toc( rt_timer );
             
             logged_entry = true;
           end
@@ -667,6 +667,10 @@ while ( true )
         end
         
         events.target_acquired = TIMER.get_time( 'task' );
+        
+        choice_time = STIMULI.setup.left_image1.target_duration;
+        
+        rt = events.target_acquired - events.rt_target_onset - choice_time;
         break;
       end
     end
