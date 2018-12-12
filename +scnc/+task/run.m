@@ -85,7 +85,12 @@ switch ( task_type )
     
   case 'c-nc'
     NEW_TRIAL_STATE = 'new_trial';
-    PRESENT_TARGET_STATE = 'present_targets';
+    
+    if ( STRUCTURE.star_use_frame_count )
+      PRESENT_TARGET_STATE = 'present_targets_frame_count';
+    else
+      PRESENT_TARGET_STATE = 'present_targets';
+    end
     
     CONDITIONS.indices = get_condition_indices( STRUCTURE, opts.RAND, n_randomization_blocks );
   otherwise
@@ -492,7 +497,7 @@ while ( true )
       %   bridge reward
       comm.reward( 1, REWARDS.bridge );
       
-      if ( INTERFACE.use_mouse )
+      if ( INTERFACE.use_mouse && INTERFACE.allow_set_mouse )
         SetMouse( opts.WINDOW.center(1), opts.WINDOW.center(2) );
       end
       
@@ -699,6 +704,135 @@ while ( true )
     end
   end
   
+  %%  STATE present_targets_frame_count
+  
+  if ( strcmp(cstate, 'present_targets_frame_count') )
+    if ( first_entry )
+      LOG_DEBUG( cstate, 'entry', opts );
+      TIMER.reset_timers( cstate );
+      
+      events.(cstate) = TIMER.get_time( 'task' );
+      
+      %   bridge reward
+      comm.reward( 1, REWARDS.bridge );
+      
+      if ( INTERFACE.use_mouse && INTERFACE.allow_set_mouse )
+        SetMouse( opts.WINDOW.center(1), opts.WINDOW.center(2) );
+      end
+      
+      s1 = STIMULI.left_image1;
+      s2 = STIMULI.right_image1;
+      
+      current_cues = { s1, s2 };
+      cellfun( @(x) x.reset_targets(), current_cues );
+      
+      if ( ~is_two_targets )
+        current_cues = current_cues(correct_image_index);
+        direction_indices = direction_indices(correct_image_index);
+      end
+      
+      if ( INTERFACE.use_mouse )
+        [last_x, last_y] = GetMouse();
+      end
+      
+      current_star_frame = 1;
+      n_star_frames = STRUCTURE.n_star_frames;
+      
+      logged_target_onset = false;
+      
+      entered_target = false;
+      broke_target = false;
+      entered_target_index = nan;
+      selected_target_index = nan;
+      drew_stimulus = false;
+      did_show_mask = false;
+      logged_entry = false;
+      first_entry = false;
+    end
+    
+    if ( INTERFACE.use_mouse )
+      [curr_x, curr_y] = GetMouse();
+      
+      if ( curr_x ~= last_x || curr_y ~= last_y )
+        ShowCursor();
+      end
+    end
+    
+    if ( current_star_frame <= n_star_frames )
+      cellfun( @(x) x.draw(), current_cues );
+      Screen( 'flip', WINDOW.index );
+      drew_stimulus = true;
+      
+      if ( ~logged_target_onset )
+        events.target_onset = TIMER.get_time( 'task' );
+        logged_target_onset = true;
+      end
+      
+      current_star_frame = current_star_frame + 1;
+    elseif ( is_masked && ~did_show_mask )
+      assign_images( s1, s2, current_images.left_mask_cue_image, current_images.right_mask_cue_image );
+
+      cellfun( @(x) x.draw(), current_cues );
+      Screen( 'flip', WINDOW.index );
+
+      did_show_mask = true;
+
+      events.mask_onset = TIMER.get_time( 'task' );
+    end
+    
+    for i = 1:numel(current_cues)
+      stim = current_cues{i};
+      
+      is_ib = stim.in_bounds();
+      
+      if ( is_ib )
+        if ( isnan(entered_target_index) )
+          entered_target_index = direction_indices(i);
+          
+          if ( ~logged_entry )
+            events.target_entered = TIMER.get_time( 'task' );
+            logged_entry = true;
+          end
+        end
+      elseif ( entered_target && entered_target_index == i )
+        % broke fixation to the original target -- decide how to handle
+        % this.
+        broke_target = true;
+      end
+      
+      if ( stim.duration_met() )
+        LOG_DEBUG( sprintf('chose: %d', i), 'event', opts );
+        selected_target_index = direction_indices(i);
+        
+        if ( STRUCTURE.show_feedback )
+          cstate = 'choice_feedback';
+        else
+          cstate = 'iti';
+        end
+        
+        events.target_acquired = TIMER.get_time( 'task' );
+        break;
+      end
+    end
+    
+    state_dur_crit_met = TIMER.duration_met( cstate );
+    error_crit_met = state_dur_crit_met && ( ~entered_target || broke_target );
+    ok_crit_met = ~isnan( selected_target_index );    
+
+    if ( ok_crit_met || error_crit_met )
+      if ( STRUCTURE.show_feedback )
+        cstate = 'choice_feedback';
+      else
+        cstate = 'iti';
+      end
+      
+      first_entry = true;
+      
+      if ( INTERFACE.use_mouse && INTERFACE.allow_hide_mouse )
+        HideCursor();
+      end
+    end
+  end
   
   %%  STATE present_targets
   if ( strcmp(cstate, 'present_targets') )
@@ -711,7 +845,7 @@ while ( true )
       %   bridge reward
       comm.reward( 1, REWARDS.bridge );
       
-      if ( INTERFACE.use_mouse )
+      if ( INTERFACE.use_mouse && INTERFACE.allow_set_mouse )
         SetMouse( opts.WINDOW.center(1), opts.WINDOW.center(2) );
       end
       
@@ -761,12 +895,12 @@ while ( true )
     
     if ( is_masked && ~did_show_mask && toc(masked_timer) > pre_mask_delay )
       assign_images( s1, s2, current_images.left_mask_cue_image, current_images.right_mask_cue_image );
-      
+
       cellfun( @(x) x.draw(), current_cues );
       Screen( 'flip', WINDOW.index );
-      
+
       did_show_mask = true;
-      
+
       events.mask_onset = TIMER.get_time( 'task' );
     end
     

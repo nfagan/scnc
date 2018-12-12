@@ -48,6 +48,7 @@ INTERFACE.reward_key = KbName( 'r' );
 INTERFACE.use_mouse = true;
 INTERFACE.use_reward = false;
 INTERFACE.allow_hide_mouse = true;
+INTERFACE.allow_set_mouse = true;
 INTERFACE.use_brains_arduino = false;
 INTERFACE.is_debug = true;
 INTERFACE.use_sounds = true;
@@ -82,6 +83,8 @@ STRUCTURE.show_feedback = true;
 STRUCTURE.show_break_text = false;
 STRUCTURE.rt_show_mask_target = true;
 STRUCTURE.rt_is_two_targets = false;
+STRUCTURE.n_star_frames = 1;
+STRUCTURE.star_use_frame_count = false;
 
 %	SCREEN
 SCREEN = struct();
@@ -99,6 +102,7 @@ time_in.new_trial = 0;
 time_in.fixation = 2;
 time_in.task = Inf;
 time_in.present_targets = 5;
+time_in.present_targets_frame_count = 5;
 time_in.rt_present_targets = 5;
 time_in.rt_response = 5;
 time_in.choice_feedback = 1;
