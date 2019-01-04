@@ -1,4 +1,4 @@
-w = Screen( 'OpenWindow', 1, [], [] );
+w = Screen( 'OpenWindow', 2, [], [] );
 
 ts = nan( 1e4, 1 );
 stp = 0;

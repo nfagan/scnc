@@ -93,6 +93,10 @@ switch ( task_type )
     end
     
     CONDITIONS.indices = get_condition_indices( STRUCTURE, opts.RAND, n_randomization_blocks );
+    
+  case 'side-bias'
+    NEW_TRIAL_STATE = 'side_bias_new_trial';
+    PRESENT_TARGET_STATE = 'side_bias_present_targets';
   otherwise
     error( 'Unrecognized task type "%s".', task_type );
 end
@@ -387,6 +391,37 @@ while ( true )
     
     cstate = next_state;
     first_entry = true;
+  end
+  
+  %%  STATE side_bias_new_trial
+  if ( strcmp(cstate, 'side_bias_new_trial') )
+    
+    cue1 = STIMULI.left_image1;
+    cue2 = STIMULI.right_image1;
+    
+    if ( strcmp(STRUCTURE.side_bias_chest_direction, 'right') )
+      current_direction = 'right';
+      correct_image_index = 2;
+      direction_indices = 2;
+    else
+      current_direction = 'left';
+      correct_image_index = 1;
+      direction_indices = 1;
+    end
+    
+    current_images = get_side_bias_current_images( IMAGES, current_direction );
+    
+%     direction_indices = [ 1, 2 ];
+    
+     % assign cues
+    assign_images( cue1, cue2, current_images.left_cue_image, current_images.right_cue_image );
+
+    if ( isa(STIMULI.fix_square, 'Image') )
+      assign_fixation_image( STIMULI.fix_square, IMAGES );
+    end
+    
+    cstate = 'fixation';
+    first_entry = true;    
   end
 
   %%   STATE fixation
@@ -704,6 +739,108 @@ while ( true )
     end
   end
   
+  %%  STATE side_bias_present_targets
+  
+  if ( strcmp(cstate, 'side_bias_present_targets') )
+    if ( first_entry )
+      LOG_DEBUG( cstate, 'entry', opts );
+      
+      TIMER.reset_timers( cstate );
+      
+      events.(cstate) = TIMER.get_time( 'task' );
+      
+      s1 = STIMULI.left_image1;
+      s2 = STIMULI.right_image1;
+      
+      if ( strcmp(current_direction, 'right') )
+        current_cues = { s2 };
+      else
+        current_cues = { s1 };
+      end
+      
+      cellfun( @(x) x.reset_targets(), current_cues );
+      
+      entered_target = false;
+      broke_target = false;
+      entered_target_index = nan;
+      selected_target_index = nan;
+      drew_stimulus = false;
+      
+      first_entry = false;
+    end
+    
+    if ( ~drew_stimulus )
+      cellfun( @(x) x.draw(), current_cues );
+      Screen( 'Flip', opts.WINDOW.index );
+      
+      drew_stimulus = true;
+%       rt_timer = tic;
+    end
+    
+    for i = 1:numel(current_cues)
+      stim = current_cues{i};
+      
+      is_ib = stim.in_bounds();
+      
+      if ( is_ib )
+        if ( isnan(entered_target_index) )
+          entered_target_index = direction_indices(i);
+          
+          if ( ~logged_entry )
+            events.target_entered = TIMER.get_time( 'task' );
+            
+%             rt = toc( rt_timer );
+            
+            logged_entry = true;
+          end
+        end
+      elseif ( entered_target && entered_target_index == i )
+        % broke fixation to the original target -- decide how to handle
+        % this.
+        broke_target = true;
+      end
+      
+      if ( stim.duration_met() )
+        LOG_DEBUG( sprintf('chose: %d', i), 'event', opts );
+        selected_target_index = direction_indices(i);
+        
+        if ( STRUCTURE.show_feedback )
+          cstate = 'side_bias_choice_feedback';
+        else
+          cstate = 'iti';
+        end
+        
+        events.target_acquired = TIMER.get_time( 'task' );
+        
+        choice_time = STIMULI.setup.left_image1.target_duration;
+        break;
+      end
+    end
+    
+    state_dur_crit_met = TIMER.duration_met( cstate );
+    error_crit_met = state_dur_crit_met && ( ~entered_target || broke_target );
+    ok_crit_met = ~isnan( selected_target_index );    
+
+    if ( ok_crit_met || error_crit_met )
+      if ( STRUCTURE.show_feedback )
+        cstate = 'choice_feedback';
+      else
+        cstate = 'iti';
+      end
+      
+      first_entry = true;
+      
+      if ( INTERFACE.use_mouse && INTERFACE.allow_hide_mouse )
+        HideCursor();
+      end
+    end
+    
+    if ( TIMER.duration_met(cstate) )
+      cstate = 'choice_feedback';
+      first_entry = true;
+    end
+  end
+  
   %%  STATE present_targets_frame_count
   
   if ( strcmp(cstate, 'present_targets_frame_count') )
@@ -958,6 +1095,108 @@ while ( true )
     end
   end
   
+  %%  STATE side_bias_choice_feedback
+  if ( strcmp(cstate, 'side_bias_choice_feedback') )
+    if ( first_entry )
+      LOG_DEBUG( cstate, 'entry', opts );
+      TIMER.reset_timers( cstate );
+      
+      events.(cstate) = TIMER.get_time( 'task' );
+      
+      s1 = STIMULI.left_image1;
+      s2 = STIMULI.right_image1;
+      
+      was_correct = selected_target_index == correct_image_index;
+      made_select = ~isnan( selected_target_index );
+      
+      if ( isnan(selected_target_index) )
+        selected_direction = '';
+      else
+        selected_direction = DIRECTIONS{selected_target_index};
+      end
+      
+      if ( made_select )
+        if ( was_correct )
+          assign_images( s1, s2, current_images.left_success_image, current_images.right_success_image );
+          current_sound = SOUNDS.correct;
+
+          comm.reward( 1, REWARDS.main );
+        else
+          assign_images( s1, s2, current_images.left_err_image, current_images.right_err_image );
+          current_sound = SOUNDS.incorrect;
+        end
+      end
+      
+      current_stimuli = { s1, s2 };
+      
+      if ( ~is_two_targets )
+        current_stimuli = current_stimuli(correct_image_index);
+        use_correct_image_index = 1;
+      else
+        use_correct_image_index = correct_image_index;
+      end
+      
+      drew_stimulus = false;
+      first_entry = false;
+    end
+
+    if ( ~drew_stimulus )
+      if ( ~made_select )
+        Screen( 'BlendFunction', WINDOW.index, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+      end
+      
+      cellfun( @(x) x.draw(), current_stimuli );
+      
+      if ( ~made_select )
+        mask_color = [ STIMULI.setup.no_choice_indicator.color, 125 ];
+        
+        if ( STIMULI.setup.no_choice_indicator.visible )
+          Screen( 'FillRect', WINDOW.index, mask_color ...
+            , current_stimuli{use_correct_image_index}.vertices );
+          fprintf( '\n Drawing ... ' );
+        end
+      end
+      
+      Screen( 'flip', WINDOW.index );
+      
+      if ( ~made_select )
+        Screen( 'BlendFunction', WINDOW.index, GL_ONE, GL_ZERO );
+      end
+      
+      drew_stimulus = true;
+      
+      events.feedback_onset = TIMER.get_time( 'task' );
+      
+      if ( made_select && INTERFACE.use_sounds )
+        sound( current_sound.sound, current_sound.fs );
+      end
+    end
+
+    if ( TIMER.duration_met(cstate) )
+      cstate = 'iti';
+      first_entry = true;
+    end
+  end
+  
+  %   STATE iti
+  if ( strcmp(cstate, 'iti') )
+    if ( first_entry )
+      LOG_DEBUG( cstate, 'entry', opts );
+      Screen( 'flip', WINDOW.index );
+      TIMER.reset_timers( cstate );
+      
+      events.(cstate) = TIMER.get_time( 'task' );
+      
+      first_entry = false;
+    end
+
+    if ( TIMER.duration_met(cstate) )
+      cstate = NEW_TRIAL_STATE;
+      first_entry = true;
+    end
+  end
+  
+  
   %%  STATE choice_feedback
   if ( strcmp(cstate, 'choice_feedback') )
     if ( first_entry )
@@ -1067,7 +1306,7 @@ while ( true )
     end
   end
   
-  %   STATE break_display_image
+  %%   STATE break_display_image
   if ( strcmp(cstate, 'break_display_image') )
     if ( first_entry )
       LOG_DEBUG( cstate, 'entry', opts );
@@ -1418,6 +1657,35 @@ img_outs.left_success_image = scc_l;
 img_outs.right_success_image = scc_r;
 img_outs.left_success_image_name = scc_l_name;
 img_outs.right_success_image_name = scc_r_name;
+
+end
+
+function img_outs = get_side_bias_current_images(images, direction)
+
+targets = images.target;
+
+target_names = targets{:, end-1};
+targ_images = targets{end};
+
+targ_name = sprintf( '%s_cue', direction );
+[targl, targl_name, targr, targr_name] = get_image( targ_images, target_names, targ_name );
+
+img_outs = struct();
+img_outs.left_cue_image = targl;
+img_outs.right_cue_image = targr;
+img_outs.left_cue_image_name = targl_name;
+img_outs.right_cue_image_name = targr_name;
+
+img_outs.left_success_image = targl;
+img_outs.right_success_image = targr;
+img_outs.left_cue_image_name = targl_name;
+img_outs.right_cue_image_name = targr_name;
+
+img_outs.left_err_image = targl;
+img_outs.right_err_image = targr;
+img_outs.left_err_image_name = targl_name;
+img_outs.right_err_image_name = targr_name;
+
 
 end
 

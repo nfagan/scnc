@@ -91,6 +91,8 @@ switch ( STRUCTURE.task_type )
     image_info = get_rt_image_info( stimuli_p, opts.INTERFACE.is_debug );
   case 'c-nc'
     image_info = get_cnc_image_info( stimuli_p, opts.INTERFACE.is_debug );
+  case 'side-bias'
+    image_info = get_side_bias_image_info( stimuli_p, opts.INTERFACE.is_debug );
   otherwise
     error( 'Unrecognized task type "%s".', task_type );
 end
@@ -175,6 +177,13 @@ function image_info = get_rt_image_info(stimuli_p, is_debug)
 
 image_p = fullfile( stimuli_p, 'rt-images' );
 image_info = get_images( image_p, is_debug, 6 );
+
+end
+
+function image_info = get_side_bias_image_info(stimuli_p, is_debug)
+
+image_p = fullfile( stimuli_p, 'side-bias-images' );
+image_info = get_images( image_p, is_debug, Inf );
 
 end
 
@@ -310,7 +319,7 @@ assert( all(isfield(structure, req_fields)) ...
   , strjoin(req_fields, ', ') );
 
 validatestring( structure.trial_type, {'congruent', 'incongruent', 'objective'} );
-validatestring( structure.task_type, {'c-nc', 'rt'} );
+validatestring( structure.task_type, {'c-nc', 'rt', 'side-bias'} );
 validatestring( structure.rt_conscious_type, {'conscious', 'nonconscious'} );
 
 if ( strcmp(structure.task_type, 'rt') )
