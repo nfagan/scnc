@@ -149,6 +149,7 @@ while ( true )
       DATA(tn).was_correct = was_correct;
       DATA(tn).made_selection = made_selection;
       DATA(tn).direction = current_direction;
+      DATA(tn).rt_correct_direction = correct_direction;
       DATA(tn).selected_direction = selected_direction;
       DATA(tn).selected_target_index = selected_target_index;
       DATA(tn).image_info = get_image_name_struct( current_images );
