@@ -1521,16 +1521,20 @@ function mat = get_rt_condition_matrix(n_l, n_r, n_two)
 tot = n_l + n_r + n_two;
 
 assert( mod(tot, 2) == 0, 'N conditions must be even.' );
+assert( mod(n_two, 2) == 0, 'N two starts must be even.' );
 
 l = repmat( {'left'}, n_l, 1 );
 r = repmat( {'right'}, n_r, 1 );
 both = repmat( {'two'}, n_two, 1 );
 
-left_direction = repmat( {'left'}, tot/2, 1 );
-right_direction = repmat( {'right'}, tot/2, 1 );
+both_left = repmat( {'left'}, n_two/2, 1 );
+both_right = repmat( {'right'}, n_two/2, 1 );
+
+both_directions = [ both_left; both_right ];
+single_directions = repmat( {''}, n_l + n_r, 1 );
 
 trial_types = [ l; r; both ];
-directions = [ left_direction(:); right_direction(:) ];
+directions = [ single_directions; both_directions ];
 
 mat = [ trial_types, directions ];
 
