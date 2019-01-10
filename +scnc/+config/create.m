@@ -86,6 +86,7 @@ STRUCTURE.rt_is_two_targets = false;
 STRUCTURE.n_star_frames = 1;
 STRUCTURE.star_use_frame_count = false;
 STRUCTURE.side_bias_chest_direction = 'right';
+STRUCTURE.rt_forced_correct_target = false;
 
 %	SCREEN
 SCREEN = struct();

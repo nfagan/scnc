@@ -675,7 +675,7 @@ while ( true )
     end
     
     for i = 1:numel(current_cues)
-      if ( direction_indices(i) ~= correct_image_index )
+      if ( STRUCTURE.rt_forced_correct_target && direction_indices(i) ~= correct_image_index )
         continue;
       end
       
