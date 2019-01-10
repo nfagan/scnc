@@ -11,24 +11,30 @@ ids = combs( labs, 'identifier', find(labs, {'c-nc'}) );
 
 %%
 
+import shared_utils.general.map_fun;
+
 % id = ids{1};
 id = 'nc-incongruent-twotarg-14-Dec-2018 17_58_26.mat';
 
-unified_file = sbha.load1( 'unified', id );
-edf_file = sbha.load1( 'edf', id );
-edf_sync_file = sbha.load1( 'edf_sync', id );
+files = sbha.load_many( {'unified', 'edf', 'edf_sync'}, id );
+% Error if any files do not match `id`
+map_fun( @(x) assert(~isempty(x), 'File does not exist.'), files );
+
+unified_file = files('unified');
+edf_file = files('edf');
+edf_sync_file = files('edf_sync');
 
 %%
 
 un_file = unified_file;
 
 un_file.opts.SCREEN.index = 0;
-un_file.opts.SCREEN.rect = [0, 0, 800, 800];
-% un_file.opts.SCREEN.rect = [];
+% un_file.opts.SCREEN.rect = [0, 0, 800, 800];
+un_file.opts.SCREEN.rect = [];
 
-un_file.opts.STRUCTURE.n_star_frames = 100;
+un_file.opts.STRUCTURE.n_star_frames = 25;
 
-clock_offset = 10;
+clock_offset = 0;
 open_windows = true;
 
 scnc.viewer.start( un_file, edf_file, edf_sync_file ...

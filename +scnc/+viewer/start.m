@@ -130,6 +130,7 @@ end
 
 % eye position indicator
 eye_position = ptb.stimuli.Rect();
+eye_position.Shape = 'oval';
 eye_position.Window = current_window;
 eye_position.Position.Units = 'normalized';
 eye_position.Scale = [10, 10];
@@ -180,6 +181,9 @@ switch ( task_type )
   case 'c-nc'
     image_info = get_images( fullfile(image_p, 'cnc-images'), true, 4 );
     use_fields = { 'congruent', 'incongruent', 'mask' };
+  case 'rt'
+    image_info = get_images( fullfile(image_p, 'rt-images'), true, 6 );
+    use_fields = { 'cue', 'error', 'mask', 'success', 'target' };
   otherwise
     error( 'Unrecognized task type "%s".', task_type );
 end

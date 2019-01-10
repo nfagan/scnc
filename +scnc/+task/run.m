@@ -675,6 +675,10 @@ while ( true )
     end
     
     for i = 1:numel(current_cues)
+      if ( direction_indices(i) ~= correct_image_index )
+        continue;
+      end
+      
       stim = current_cues{i};
       
       is_ib = stim.in_bounds();

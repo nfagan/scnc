@@ -93,11 +93,15 @@ if ( should_update_frame_count )
   n_cue_frames = n_cue_frames + 1;
 end
 
-left_image = images(left_image_name);
-right_image = images(right_image_name);
+try
+  left_image = images(left_image_name);
+  right_image = images(right_image_name);
 
-stimuli.left_image1.FaceColor = left_image;
-stimuli.right_image1.FaceColor = right_image;
+  stimuli.left_image1.FaceColor = left_image;
+  stimuli.right_image1.FaceColor = right_image;
+catch err
+  %
+end
 
 state.UserData.n_cue_frames = n_cue_frames;
 
