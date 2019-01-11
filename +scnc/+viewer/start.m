@@ -10,7 +10,7 @@ data = ptb.Reference( struct('trial_data', unified_file.DATA) );
 make_task( opts );
 make_windows( opts, open_windows );
 make_states( opts, data );
-make_stimuli( opts );
+make_stimuli( opts, params );
 make_images( opts, opts.Value.WINDOW );
 make_eye_data( data, edf_file, sync_file );
 make_timing_data( data, params.clock_offset );
@@ -27,6 +27,8 @@ function defaults = make_defaults()
 defaults = struct();
 defaults.open_windows = true;
 defaults.clock_offset = 0;
+defaults.eye_position_indicator_size = 10;
+defaults.eye_position_indicator_color = [255, 255, 255];
 
 end
 
@@ -85,7 +87,7 @@ opts.Value.STATES = states;
 
 end
 
-function make_stimuli(opts)
+function make_stimuli(opts, params)
 
 original_window = opts.Value.VIEWER.original_window;
 current_window = opts.Value.WINDOW;
@@ -134,7 +136,8 @@ eye_position = ptb.stimuli.Rect();
 eye_position.Shape = 'oval';
 eye_position.Window = current_window;
 eye_position.Position.Units = 'normalized';
-eye_position.Scale = [10, 10];
+eye_position.Scale = params.eye_position_indicator_size;
+eye_position.FaceColor = params.eye_position_indicator_color;
 
 opts.Value.STIMULI.eye_position = eye_position;
 
