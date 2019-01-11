@@ -102,9 +102,9 @@ for i = 1:numel(stim_names)
     case 'center'
       pos = [ 1/2, 1/2 ];
     case 'center-left'
-      pos = [ 1/3, 1/2 ];
+      pos = [ 1/4, 1/2 ];
     case 'center-right'
-      pos = [ 2/3, 1/2 ];
+      pos = [ 3/4, 1/2 ];
     otherwise
       error( 'Unrecognized placement "%s".', stim_schema.placement );
   end
@@ -115,9 +115,9 @@ for i = 1:numel(stim_names)
   scl = ptb.Transform( stim_schema.size, 'px' );
   
   if ( isfield(stim_schema, 'shift') )
-    original_pixel_pos = get_pixel_value( pos, original_window ) + stim_schema.shift;
-    original_pixel_pos = ptb.Transform( original_pixel_pos );
-    set( pos, get_normalized_value(original_pixel_pos, original_window) );
+    shift = stim_schema.shift;
+    amount_shift = get_normalized_value( ptb.Transform(shift), original_window );
+    pos.Value = pos.Value + amount_shift;
   end
   
   stimulus = ptb.stimuli.Rect();
@@ -186,7 +186,7 @@ switch ( task_type )
     image_info = get_images( fullfile(image_p, 'rt-images'), true, 6 );
     use_fields = { 'cue', 'error', 'mask', 'success', 'target' };
   otherwise
-    error( 'Unrecognized task type "%s".', task_type );
+    error( 'Unrecognized or unsupported task type: "%s".', task_type );
 end
 
 for i = 1:numel(use_fields)
