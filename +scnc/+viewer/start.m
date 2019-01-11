@@ -54,6 +54,7 @@ display_window.Rect = screen.rect;
 display_window.BackgroundColor = screen.background_color;
 
 if ( open_windows )
+  display_window.SkipSyncTests = true;
   open( display_window );
 end
 
