@@ -13,8 +13,8 @@ edf_sync_file = files('edf_sync');
 un_file = unified_file;
 
 un_file.opts.SCREEN.index = 0;
-% un_file.opts.SCREEN.rect = [0, 0, 800, 800];
-un_file.opts.SCREEN.rect = [];
+un_file.opts.SCREEN.rect = [0, 0, 800, 800];
+% un_file.opts.SCREEN.rect = [];
 
 % un_file.opts.STRUCTURE.n_star_frames = 25;
 
