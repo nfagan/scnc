@@ -56,6 +56,7 @@ panels.interface = uipanel( F ...
 
 % - Check boxes
 interface_fs = get_gui_fields( config.INTERFACE );
+interface_fs = interface_fs( check_is_checkbox_convertible(config.INTERFACE, interface_fs) );
 
 w = .5;
 l = 1 / numel(interface_fs);
@@ -164,7 +165,7 @@ panels.run = uipanel( F ...
   , 'Position', [ X, Y, W, L ] ...
 );
 
-funcs = { 'save-as', 'load', 'clean-up', 'Start' };
+funcs = { 'refresh', 'save-as', 'load', 'clean-up' 'start' };
 
 w = .5;
 l = 1 / numel(funcs);
@@ -221,10 +222,11 @@ function handle_button(source, event)
   %   HANDLE_BUTTON -- Handle button clicks.
   
   func = source.String;
+  
   switch ( func )
-    case 'Start'
+    case 'start'
       scnc.config.save( config );
-      scnc.task.start( config );
+      scnc.task.start( config, @scnc.task.run );
       
     case 'load'
       load_new_config_file();
@@ -235,20 +237,29 @@ function handle_button(source, event)
     case 'clean-up'
       scnc.config.save( config );
       scnc.task.cleanup();
+      
     case 'reset to default'
       config = scnc.config.load( '-default' );
       scnc.config.save( config );
       clf( F );
       scnc.gui.start( F );
+      
     case 'check latest edf'
       scnc.config.save( config );
       scnc.util.check_latest_edf();
+      
     case 'make default'
       scnc.config.save( config, '-default' );
+      
     case 'hard reset'
       scnc.config.create( true );
       clf( F );
       scnc.gui.start( F );
+      
+    case 'refresh'
+      clf( F );
+      scnc.gui.start( F );
+      
     otherwise
       error( 'Unrecognized identifier ''%s''', source.String );
   end
@@ -279,6 +290,8 @@ function load_new_config_file()
     warning( 'Not a valid config file; not loading.' );
     return
   end
+  
+  config = scnc.config.reconcile( config );
   
   scnc.config.save( config );
   scnc.gui.start( F );
@@ -857,6 +870,22 @@ if ( ~isfield(S.gui_fields, 'include') )
 else
   fs = S.gui_fields.include;
 end
+
+end
+
+function tf = check_is_checkbox_convertible(s, f)
+
+tf = false( size(f) );
+
+for i = 1:numel(f)
+  tf(i) = is_checkbox_convertible( s.(f{i}) );
+end
+
+end
+
+function tf = is_checkbox_convertible(v)
+
+tf = isscalar( v ) && ( islogical(v) || ismember(v, [0, 1]) );
 
 end
 

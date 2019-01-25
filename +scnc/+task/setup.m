@@ -25,6 +25,13 @@ catch err
   warning( err.message );
 end
 
+try
+  KbName( 'UnifyKeyNames' );
+  opts.INTERFACE.stop_key = KbName( 'escape' );
+catch err
+  warning( err.message );
+end
+
 has_ptb = ~isempty( which('Screen') );
 
 if ( opts.INTERFACE.skip_sync_tests && has_ptb )
@@ -44,7 +51,13 @@ catch err
   throw( err );
 end
 
-root_data_path = fullfile( opts.PATHS.data, datestr(now, 'mmddyy') );
+if ( opts.INTERFACE.use_auto_paths )
+  data_path = fullfile( scnc.util.get_project_folder(), 'data' );
+else
+  data_path = opts.PATHS.data;
+end
+
+root_data_path = fullfile( data_path, datestr(now, 'mmddyy') );
 opts.PATHS.current_data_root = root_data_path;
 
 shared_utils.io.require_dir( root_data_path );
@@ -73,8 +86,16 @@ TIMER.register( opts.TIMINGS.time_in );
 
 stimuli_p = fullfile( scnc.util.get_project_folder(), 'stimuli' );
 
-image_p = fullfile( stimuli_p, 'images' );
-image_info = get_images( image_p, opts.INTERFACE.is_debug, 4 );
+switch ( STRUCTURE.task_type )
+  case 'rt'
+    image_info = get_rt_image_info( stimuli_p, opts.INTERFACE.is_debug );
+  case 'c-nc'
+    image_info = get_cnc_image_info( stimuli_p, opts.INTERFACE.is_debug );
+  case 'side-bias'
+    image_info = get_side_bias_image_info( stimuli_p, opts.INTERFACE.is_debug );
+  otherwise
+    error( 'Unrecognized task type "%s".', task_type );
+end
 
 %   STIMULI
 stim_fs = fieldnames( STIMULI.setup );
@@ -142,6 +163,27 @@ opts.SERIAL = SERIAL;
 opts.IMAGES = image_info;
 opts.SOUNDS = sounds;
 opts.RAND = RAND;
+
+end
+
+function image_info = get_cnc_image_info(stimuli_p, is_debug)
+
+image_p = fullfile( stimuli_p, 'cnc-images' );
+image_info = get_images( image_p, is_debug, 4 );
+
+end
+
+function image_info = get_rt_image_info(stimuli_p, is_debug)
+
+image_p = fullfile( stimuli_p, 'rt-images' );
+image_info = get_images( image_p, is_debug, 6 );
+
+end
+
+function image_info = get_side_bias_image_info(stimuli_p, is_debug)
+
+image_p = fullfile( stimuli_p, 'side-bias-images' );
+image_info = get_images( image_p, is_debug, Inf );
 
 end
 
@@ -277,6 +319,13 @@ assert( all(isfield(structure, req_fields)) ...
   , strjoin(req_fields, ', ') );
 
 validatestring( structure.trial_type, {'congruent', 'incongruent', 'objective'} );
+validatestring( structure.task_type, {'c-nc', 'rt', 'side-bias'} );
+validatestring( structure.rt_conscious_type, {'conscious', 'nonconscious'} );
+
+if ( strcmp(structure.task_type, 'rt') )
+  validateattributes( structure.rt_n_lr, {'double'}, {'even', 'scalar'}, 'rt_n_lr' );
+  validateattributes( structure.rt_n_two, {'double'}, {'even', 'scalar'}, 'rt_n_lr' );
+end
 
 end
 

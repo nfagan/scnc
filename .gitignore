@@ -1,6 +1,8 @@
+*.lnk
+.DS_Store
 *.m~
 *.asv
 +scnc/+config/config.mat
 +scnc/+config/default.mat
-stimuli/
 data/
+archive/
