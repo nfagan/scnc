@@ -45,6 +45,8 @@ DEPENDS.repositories = { 'ptb_helpers', 'serial_comm', 'shared_utils' };
 INTERFACE = struct();
 INTERFACE.stop_key = KbName( 'escape' );
 INTERFACE.reward_key = KbName( 'r' );
+INTERFACE.left_response_key = KbName( 'c' );
+INTERFACE.right_response_key = KbName( 'm' );
 INTERFACE.use_mouse = true;
 INTERFACE.use_reward = false;
 INTERFACE.allow_hide_mouse = true;
@@ -55,8 +57,10 @@ INTERFACE.use_sounds = true;
 INTERFACE.save = true;
 INTERFACE.skip_sync_tests = false;
 INTERFACE.use_auto_paths = true;
+INTERFACE.use_key_responses = false;
 INTERFACE.debug_tags = 'all';
-INTERFACE.gui_fields.exclude = { 'stop_key', 'reward_key', 'debug_tags' };
+INTERFACE.gui_fields.exclude = { 'stop_key', 'reward_key' ...
+  , 'left_response_key', 'right_response_key', 'debug_tags' };
 
 % STRUCTURE
 STRUCTURE = struct();

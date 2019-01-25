@@ -67,6 +67,10 @@ n_randomization_blocks = 1000;
 CONDITIONS = struct();
 CONDITIONS.stp = 0;
 
+use_key_responses = INTERFACE.use_key_responses;
+left_key = INTERFACE.left_response_key;
+right_key = INTERFACE.right_response_key;
+
 switch ( task_type )
   case 'rt'
     NEW_TRIAL_STATE = 'rt_new_trial';
@@ -546,15 +550,6 @@ while ( true )
       pre_mask_delay = opts.TIMINGS.time_in.(cstate);
       remaining_time = opts.TIMINGS.time_in.pre_mask_delay;
       
-%       pre_mask_delay = opts.TIMINGS.time_in.pre_mask_delay;
-%       remaining_time = opts.TIMINGS.time_in.(cstate);
-      
-%       if ( strcmp(STRUCTURE.rt_conscious_type, 'conscious') )
-%         tmp_pre_mask = pre_mask_delay;
-%         pre_mask_delay = remaining_time;
-%         remaining_time = tmp_pre_mask;
-%       end
-      
       drew_stimulus = false;
       did_show_mask = false;
       logged_entry = false;
@@ -652,6 +647,7 @@ while ( true )
       entered_target_index = nan;
       selected_target_index = nan;
       drew_stimulus = false;
+      logged_key_event = false;
       
       first_entry = false;
     end
@@ -674,49 +670,65 @@ while ( true )
 %       rt_timer = tic;
     end
     
-    for i = 1:numel(current_cues)
-      if ( STRUCTURE.rt_forced_correct_target && direction_indices(i) ~= correct_image_index )
-        continue;
+    if ( use_key_responses )
+      % Key response
+      if ( key_code(left_key) )
+        selected_target_index = direction_indices(1);
+      elseif ( key_code(right_key) )
+        selected_target_index = direction_indices(2);
       end
       
-      stim = current_cues{i};
-      
-      is_ib = stim.in_bounds();
-      
-      if ( is_ib )
-        if ( isnan(entered_target_index) )
-          entered_target_index = direction_indices(i);
-          
-          if ( ~logged_entry )
-            events.target_entered = TIMER.get_time( 'task' );
-            
-%             rt = toc( rt_timer );
-            
-            logged_entry = true;
-          end
-        end
-      elseif ( entered_target && entered_target_index == i )
-        % broke fixation to the original target -- decide how to handle
-        % this.
-        broke_target = true;
-      end
-      
-      if ( stim.duration_met() )
-        LOG_DEBUG( sprintf('chose: %d', i), 'event', opts );
-        selected_target_index = direction_indices(i);
-        
-        if ( STRUCTURE.show_feedback )
-          cstate = 'choice_feedback';
-        else
-          cstate = 'iti';
-        end
-        
+      if ( ~isnan(selected_target_index) && ~logged_key_event )
         events.target_acquired = TIMER.get_time( 'task' );
-        
-        choice_time = STIMULI.setup.left_image1.target_duration;
-        
-        rt = events.target_acquired - events.rt_target_onset - choice_time;
-        break;
+        logged_key_event = true;
+        entered_target = true;
+      end
+    else
+      % Gaze / mouse response
+      for i = 1:numel(current_cues)
+        if ( STRUCTURE.rt_forced_correct_target && direction_indices(i) ~= correct_image_index )
+          continue;
+        end
+
+        stim = current_cues{i};
+
+        is_ib = stim.in_bounds();
+
+        if ( is_ib )
+          if ( isnan(entered_target_index) )
+            entered_target_index = direction_indices(i);
+
+            if ( ~logged_entry )
+              events.target_entered = TIMER.get_time( 'task' );
+
+  %             rt = toc( rt_timer );
+
+              logged_entry = true;
+            end
+          end
+        elseif ( entered_target && entered_target_index == i )
+          % broke fixation to the original target -- decide how to handle
+          % this.
+          broke_target = true;
+        end
+
+        if ( stim.duration_met() )
+          LOG_DEBUG( sprintf('chose: %d', i), 'event', opts );
+          selected_target_index = direction_indices(i);
+
+          if ( STRUCTURE.show_feedback )
+            cstate = 'choice_feedback';
+          else
+            cstate = 'iti';
+          end
+
+          events.target_acquired = TIMER.get_time( 'task' );
+
+          choice_time = STIMULI.setup.left_image1.target_duration;
+
+          rt = events.target_acquired - events.rt_target_onset - choice_time;
+          break;
+        end
       end
     end
     
@@ -889,6 +901,7 @@ while ( true )
       drew_stimulus = false;
       did_show_mask = false;
       logged_entry = false;
+      logged_key_event = false;
       first_entry = false;
     end
     
@@ -922,38 +935,52 @@ while ( true )
       events.mask_onset = TIMER.get_time( 'task' );
     end
     
-    for i = 1:numel(current_cues)
-      stim = current_cues{i};
-      
-      is_ib = stim.in_bounds();
-      
-      if ( is_ib )
-        if ( isnan(entered_target_index) )
-          entered_target_index = direction_indices(i);
-          
-          if ( ~logged_entry )
-            events.target_entered = TIMER.get_time( 'task' );
-            logged_entry = true;
-          end
-        end
-      elseif ( entered_target && entered_target_index == i )
-        % broke fixation to the original target -- decide how to handle
-        % this.
-        broke_target = true;
+    if ( use_key_responses )
+      if ( key_code(left_key) )
+        selected_target_index = direction_indices(1);
+      elseif ( key_code(right_key) )
+        selected_target_index = direction_indices(2);
       end
       
-      if ( stim.duration_met() )
-        LOG_DEBUG( sprintf('chose: %d', i), 'event', opts );
-        selected_target_index = direction_indices(i);
-        
-        if ( STRUCTURE.show_feedback )
-          cstate = 'choice_feedback';
-        else
-          cstate = 'iti';
-        end
-        
+      if ( ~isnan(selected_target_index) && ~logged_key_event )
         events.target_acquired = TIMER.get_time( 'task' );
-        break;
+        logged_key_event = true;
+        entered_target = true;
+      end
+    else
+      for i = 1:numel(current_cues)
+        stim = current_cues{i};
+
+        is_ib = stim.in_bounds();
+
+        if ( is_ib )
+          if ( isnan(entered_target_index) )
+            entered_target_index = direction_indices(i);
+
+            if ( ~logged_entry )
+              events.target_entered = TIMER.get_time( 'task' );
+              logged_entry = true;
+            end
+          end
+        elseif ( entered_target && entered_target_index == i )
+          % broke fixation to the original target -- decide how to handle
+          % this.
+          broke_target = true;
+        end
+
+        if ( stim.duration_met() )
+          LOG_DEBUG( sprintf('chose: %d', i), 'event', opts );
+          selected_target_index = direction_indices(i);
+
+          if ( STRUCTURE.show_feedback )
+            cstate = 'choice_feedback';
+          else
+            cstate = 'iti';
+          end
+
+          events.target_acquired = TIMER.get_time( 'task' );
+          break;
+        end
       end
     end
     
@@ -1015,6 +1042,7 @@ while ( true )
       drew_stimulus = false;
       did_show_mask = false;
       logged_entry = false;
+      logged_key_event = false;
       first_entry = false;
     end
     
@@ -1046,38 +1074,52 @@ while ( true )
       events.mask_onset = TIMER.get_time( 'task' );
     end
     
-    for i = 1:numel(current_cues)
-      stim = current_cues{i};
-      
-      is_ib = stim.in_bounds();
-      
-      if ( is_ib )
-        if ( isnan(entered_target_index) )
-          entered_target_index = direction_indices(i);
-          
-          if ( ~logged_entry )
-            events.target_entered = TIMER.get_time( 'task' );
-            logged_entry = true;
-          end
-        end
-      elseif ( entered_target && entered_target_index == i )
-        % broke fixation to the original target -- decide how to handle
-        % this.
-        broke_target = true;
+    if ( use_key_responses )
+      if ( key_code(left_key) )
+        selected_target_index = direction_indices(1);
+      elseif ( key_code(right_key) )
+        selected_target_index = direction_indices(2);
       end
       
-      if ( stim.duration_met() )
-        LOG_DEBUG( sprintf('chose: %d', i), 'event', opts );
-        selected_target_index = direction_indices(i);
-        
-        if ( STRUCTURE.show_feedback )
-          cstate = 'choice_feedback';
-        else
-          cstate = 'iti';
-        end
-        
+      if ( ~isnan(selected_target_index) && ~logged_key_event )
         events.target_acquired = TIMER.get_time( 'task' );
-        break;
+        logged_key_event = true;
+        entered_target = true;
+      end
+    else
+      for i = 1:numel(current_cues)
+        stim = current_cues{i};
+
+        is_ib = stim.in_bounds();
+
+        if ( is_ib )
+          if ( isnan(entered_target_index) )
+            entered_target_index = direction_indices(i);
+
+            if ( ~logged_entry )
+              events.target_entered = TIMER.get_time( 'task' );
+              logged_entry = true;
+            end
+          end
+        elseif ( entered_target && entered_target_index == i )
+          % broke fixation to the original target -- decide how to handle
+          % this.
+          broke_target = true;
+        end
+
+        if ( stim.duration_met() )
+          LOG_DEBUG( sprintf('chose: %d', i), 'event', opts );
+          selected_target_index = direction_indices(i);
+
+          if ( STRUCTURE.show_feedback )
+            cstate = 'choice_feedback';
+          else
+            cstate = 'iti';
+          end
+
+          events.target_acquired = TIMER.get_time( 'task' );
+          break;
+        end
       end
     end
     
