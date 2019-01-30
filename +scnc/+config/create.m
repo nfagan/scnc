@@ -91,6 +91,7 @@ STRUCTURE.n_star_frames = 1;
 STRUCTURE.star_use_frame_count = false;
 STRUCTURE.side_bias_chest_direction = 'right';
 STRUCTURE.rt_forced_correct_target = false;
+STRUCTURE.require_key_press_to_exit_break = false;
 
 %	SCREEN
 SCREEN = struct();
@@ -120,6 +121,7 @@ time_in.iti = 1;
 time_in.break_display_image = 30;
 time_in.cycle_break_image = 5;
 time_in.debug_stimuli_size = 100;
+time_in.break_key_press_to_exit = Inf;
 
 TIMINGS.time_in = time_in;
 

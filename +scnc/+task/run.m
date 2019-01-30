@@ -74,7 +74,12 @@ right_key = INTERFACE.right_response_key;
 switch ( task_type )
   case 'rt'
     NEW_TRIAL_STATE = 'rt_new_trial';
-    PRESENT_TARGET_STATE = 'rt_present_targets';
+    
+    if ( STRUCTURE.star_use_frame_count )
+      PRESENT_TARGET_STATE = 'rt_present_targets_frame_count';
+    else
+      PRESENT_TARGET_STATE = 'rt_present_targets';
+    end
     
     n_lr = STRUCTURE.rt_n_lr;
     n_two = STRUCTURE.rt_n_two;
@@ -480,9 +485,7 @@ while ( true )
         errors.broke_initial_fixation = true;
         cstate = NEW_TRIAL_STATE;
         first_entry = true;
-      end
-
-      if ( TIMER.duration_met(cstate) && ~entered_target )
+      elseif ( TIMER.duration_met(cstate) && ~entered_target )
         errors.initial_fixation_not_entered = true;
         cstate = 'iti';
         first_entry = true;
@@ -585,6 +588,67 @@ while ( true )
       first_entry = true;
     end
   end
+  
+  %%  STATE rt_present_targets_frame_count
+  if ( strcmp(cstate, 'rt_present_targets_frame_count') )
+    if ( first_entry )
+      LOG_DEBUG( 'rt_present_targets', 'entry', opts );
+      TIMER.reset_timers( 'rt_present_targets' );
+      
+      % Use event time with the same name as 'rt_present_targets';
+      events.rt_present_targets = TIMER.get_time( 'task' );
+      
+      %   bridge reward
+      comm.reward( 1, REWARDS.bridge );
+      
+      if ( INTERFACE.use_mouse && INTERFACE.allow_set_mouse )
+        SetMouse( opts.WINDOW.center(1), opts.WINDOW.center(2) );
+      end
+      
+      s1 = STIMULI.left_image1;
+      s2 = STIMULI.right_image1;
+      
+      current_cues = { s1, s2 };
+      cellfun( @(x) x.reset_targets(), current_cues );
+      
+      current_star_frame = 1;
+      n_star_frames = STRUCTURE.n_star_frames;
+      
+      drew_stimulus = false;
+      did_show_mask = false;
+      logged_entry = false;
+      logged_cue_onset = false;
+      first_entry = false;
+    end
+    
+    if ( current_star_frame <= n_star_frames )
+      cellfun( @(x) x.draw(), current_cues );
+      Screen( 'flip', WINDOW.index );
+      drew_stimulus = true;
+      
+      if ( ~logged_cue_onset )
+        events.cue_onset = TIMER.get_time( 'task' );
+        logged_cue_onset = true;
+      end
+      
+      current_star_frame = current_star_frame + 1;
+    elseif ( ~did_show_mask )
+      assign_images( s1, s2, current_images.left_mask_cue_image, current_images.right_mask_cue_image );
+
+      cellfun( @(x) x.draw(), current_cues );
+      Screen( 'flip', WINDOW.index );
+
+      did_show_mask = true;
+
+      events.mask_onset = TIMER.get_time( 'task' );
+    end
+    
+    if ( did_show_mask && TIMER.duration_met('rt_present_targets') )
+      cstate = 'rt_response';
+      first_entry = true;
+    end
+  end
+  
   
   %%  STATE rt_delay
   if ( strcmp(cstate, 'rt_pre_response_delay') )
@@ -1361,6 +1425,12 @@ while ( true )
       TIMER.reset_timers( cstate );
       TIMER.reset_timers( 'cycle_break_image' );
       
+      if ( STRUCTURE.require_key_press_to_exit_break )
+        next_state_name = 'break_key_press_to_exit';
+      else
+        next_state_name = NEW_TRIAL_STATE;
+      end
+      
       events.(cstate) = TIMER.get_time( 'task' );
       
       break_img = STIMULI.break_image1;
@@ -1406,8 +1476,28 @@ while ( true )
     end
 
     if ( TIMER.duration_met(cstate) )
-      cstate = NEW_TRIAL_STATE;
+      cstate = next_state_name;
       first_entry = true;
+    end
+  end
+  
+  if ( strcmp(cstate, 'break_key_press_to_exit') )
+    if ( first_entry )
+      first_entry = false;
+      drew_text = false;
+    end
+    
+    if ( ~drew_text )
+      break_text = 'Press space to continue.';
+      w_center = WINDOW.center;
+      Screen( 'DrawText', WINDOW.index, break_text, w_center(1), w_center(2) );
+      Screen( 'Flip', WINDOW.index );
+      drew_text = true;
+    end
+    
+    if ( drew_text && key_code(KbName('space')) )
+      first_entry = true;
+      cstate = NEW_TRIAL_STATE;
     end
   end
 end
