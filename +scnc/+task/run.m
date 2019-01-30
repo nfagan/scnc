@@ -614,6 +614,8 @@ while ( true )
       current_star_frame = 1;
       n_star_frames = STRUCTURE.n_star_frames;
       
+      remaining_time = opts.TIMINGS.time_in.pre_mask_delay;
+      
       drew_stimulus = false;
       did_show_mask = false;
       logged_entry = false;
@@ -641,9 +643,11 @@ while ( true )
       did_show_mask = true;
 
       events.mask_onset = TIMER.get_time( 'task' );
+      
+      remaining_timer = tic();
     end
     
-    if ( did_show_mask && TIMER.duration_met('rt_present_targets') )
+    if ( did_show_mask && toc(remaining_timer) > remaining_time )
       cstate = 'rt_response';
       first_entry = true;
     end
