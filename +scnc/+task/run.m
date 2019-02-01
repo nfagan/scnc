@@ -59,7 +59,7 @@ PERFORMANCE.two_star_rt_stp = 1;
 reward_timer = nan;
 rt = nan;
 
-if ( INTERFACE.use_mouse && INTERFACE.allow_hide_mouse )
+if ( INTERFACE.allow_hide_mouse )
   HideCursor();
 end
 
@@ -813,7 +813,7 @@ while ( true )
       
       first_entry = true;
       
-      if ( INTERFACE.use_mouse && INTERFACE.allow_hide_mouse )
+      if ( INTERFACE.allow_hide_mouse )
         HideCursor();
       end
     end
@@ -915,7 +915,7 @@ while ( true )
       
       first_entry = true;
       
-      if ( INTERFACE.use_mouse && INTERFACE.allow_hide_mouse )
+      if ( INTERFACE.allow_hide_mouse )
         HideCursor();
       end
     end
@@ -1065,7 +1065,7 @@ while ( true )
       
       first_entry = true;
       
-      if ( INTERFACE.use_mouse && INTERFACE.allow_hide_mouse )
+      if ( INTERFACE.allow_hide_mouse )
         HideCursor();
       end
     end
@@ -1204,7 +1204,7 @@ while ( true )
       
       first_entry = true;
       
-      if ( INTERFACE.use_mouse && INTERFACE.allow_hide_mouse )
+      if ( INTERFACE.allow_hide_mouse )
         HideCursor();
       end
     end
