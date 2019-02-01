@@ -165,7 +165,7 @@ panels.run = uipanel( F ...
   , 'Position', [ X, Y, W, L ] ...
 );
 
-funcs = { 'refresh', 'save-as', 'load', 'clean-up' 'start' };
+funcs = { 'refresh', 'save-as', 'load', 'clean-up', 'calibrate', 'start' };
 
 w = .5;
 l = 1 / numel(funcs);
@@ -227,6 +227,10 @@ function handle_button(source, event)
     case 'start'
       scnc.config.save( config );
       scnc.task.start( config, @scnc.task.run );
+      
+    case 'calibrate'
+      scnc.config.save( config );
+      scnc.util.calibrate_eyelink_runner( config );
       
     case 'load'
       load_new_config_file();
