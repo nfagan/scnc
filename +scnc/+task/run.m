@@ -68,8 +68,11 @@ CONDITIONS = struct();
 CONDITIONS.stp = 0;
 
 use_key_responses = INTERFACE.use_key_responses;
-left_key = INTERFACE.left_response_key;
-right_key = INTERFACE.right_response_key;
+% left_key = INTERFACE.left_response_key;
+% right_key = INTERFACE.right_response_key;
+
+left_key = KbName( 'c' );
+right_key = KbName( 'm' );
 
 switch ( task_type )
   case 'rt'
