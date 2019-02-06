@@ -746,11 +746,11 @@ while ( true )
     if ( use_key_responses )
       % Key response
       if ( key_code(left_key) )
-        if ( is_rt_forced_correct_target && direction_indices(1) == correct_image_index )
+        if ( ~is_rt_forced_correct_target || direction_indices(1) == correct_image_index )
           selected_target_index = direction_indices(1);
         end
       elseif ( key_code(right_key) )
-        if ( is_rt_forced_correct_target && direction_indices(2) == correct_image_index )
+        if ( ~is_rt_forced_correct_target || direction_indices(2) == correct_image_index )
           selected_target_index = direction_indices(2);
         end
       end
