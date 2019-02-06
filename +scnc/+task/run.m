@@ -713,6 +713,8 @@ while ( true )
         draw_cues = current_cues;
       end
       
+      is_rt_forced_correct_target = STRUCTURE.rt_forced_correct_target;
+      
       entered_target = false;
       broke_target = false;
       entered_target_index = nan;
@@ -744,9 +746,13 @@ while ( true )
     if ( use_key_responses )
       % Key response
       if ( key_code(left_key) )
-        selected_target_index = direction_indices(1);
+        if ( is_rt_forced_correct_target && direction_indices(1) == correct_image_index )
+          selected_target_index = direction_indices(1);
+        end
       elseif ( key_code(right_key) )
-        selected_target_index = direction_indices(2);
+        if ( is_rt_forced_correct_target && direction_indices(2) == correct_image_index )
+          selected_target_index = direction_indices(2);
+        end
       end
       
       if ( ~isnan(selected_target_index) && ~logged_key_event )
