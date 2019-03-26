@@ -793,11 +793,7 @@ while ( true )
           LOG_DEBUG( sprintf('chose: %d', i), 'event', opts );
           selected_target_index = direction_indices(i);
 
-          if ( STRUCTURE.show_feedback )
-            cstate = 'choice_feedback';
-          else
-            cstate = 'iti';
-          end
+          cstate = 'choice_feedback';
 
           events.target_acquired = TIMER.get_time( 'task' );
 
@@ -814,11 +810,7 @@ while ( true )
     ok_crit_met = ~isnan( selected_target_index );    
 
     if ( ok_crit_met || error_crit_met )
-      if ( STRUCTURE.show_feedback )
-        cstate = 'choice_feedback';
-      else
-        cstate = 'iti';
-      end
+      cstate = 'choice_feedback';
       
       first_entry = true;
       
@@ -916,11 +908,7 @@ while ( true )
     ok_crit_met = ~isnan( selected_target_index );    
 
     if ( ok_crit_met || error_crit_met )
-      if ( STRUCTURE.show_feedback )
-        cstate = 'choice_feedback';
-      else
-        cstate = 'iti';
-      end
+      cstate = 'choice_feedback';
       
       first_entry = true;
       
@@ -1049,11 +1037,7 @@ while ( true )
           LOG_DEBUG( sprintf('chose: %d', i), 'event', opts );
           selected_target_index = direction_indices(i);
 
-          if ( STRUCTURE.show_feedback )
-            cstate = 'choice_feedback';
-          else
-            cstate = 'iti';
-          end
+          cstate = 'choice_feedback';
 
           events.target_acquired = TIMER.get_time( 'task' );
           break;
@@ -1066,11 +1050,7 @@ while ( true )
     ok_crit_met = ~isnan( selected_target_index );    
 
     if ( ok_crit_met || error_crit_met )
-      if ( STRUCTURE.show_feedback )
-        cstate = 'choice_feedback';
-      else
-        cstate = 'iti';
-      end
+      cstate = 'choice_feedback';
       
       first_entry = true;
       
@@ -1188,11 +1168,7 @@ while ( true )
           LOG_DEBUG( sprintf('chose: %d', i), 'event', opts );
           selected_target_index = direction_indices(i);
 
-          if ( STRUCTURE.show_feedback )
-            cstate = 'choice_feedback';
-          else
-            cstate = 'iti';
-          end
+          cstate = 'choice_feedback';
 
           events.target_acquired = TIMER.get_time( 'task' );
           break;
@@ -1205,11 +1181,7 @@ while ( true )
     ok_crit_met = ~isnan( selected_target_index );    
 
     if ( ok_crit_met || error_crit_met )
-      if ( STRUCTURE.show_feedback )
-        cstate = 'choice_feedback';
-      else
-        cstate = 'iti';
-      end
+      cstate = 'choice_feedback';
       
       first_entry = true;
       
@@ -1370,11 +1342,17 @@ while ( true )
         end
       end
       
+      show_feedback = STRUCTURE.show_feedback;
+      
+      if ( ~show_feedback )
+        TIMER.set_durations( 'choice_feedback', 0 );
+      end
+      
       drew_stimulus = false;
       first_entry = false;
     end
 
-    if ( ~drew_stimulus )
+    if ( show_feedback && ~drew_stimulus )
       if ( ~made_select )
         Screen( 'BlendFunction', WINDOW.index, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
       end
