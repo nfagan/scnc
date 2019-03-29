@@ -241,11 +241,7 @@ assert( n_ratings <= 10 );
 
 rating_codes = nan( 1, n_ratings );
 
-if ( ispc() )
-  rating_codes(1) = KbName( '~' );
-else
-  rating_codes(1) = KbName( '`~' );
-end
+rating_codes(1) = KbName( '`~' );
 
 key1_code = KbName( '1!' );
 
