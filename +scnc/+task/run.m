@@ -1051,7 +1051,11 @@ while ( true )
           LOG_DEBUG( sprintf('chose: %d', i), 'event', opts );
           selected_target_index = direction_indices(i);
 
-          cstate = 'choice_feedback';
+          if ( STRUCTURE.is_trial_by_trial_self_evaluation )
+            cstate = 'self_evaluation';
+          else
+            cstate = 'choice_feedback';
+          end
 
           events.target_acquired = TIMER.get_time( 'task' );
           break;
@@ -1064,7 +1068,11 @@ while ( true )
     ok_crit_met = ~isnan( selected_target_index );    
 
     if ( ok_crit_met || error_crit_met )
-      cstate = 'choice_feedback';
+      if ( STRUCTURE.is_trial_by_trial_self_evaluation )
+        cstate = 'self_evaluation';
+      else
+        cstate = 'choice_feedback';
+      end
       
       first_entry = true;
       
@@ -1399,11 +1407,7 @@ while ( true )
     end
 
     if ( TIMER.duration_met(cstate) )
-      if ( STRUCTURE.is_trial_by_trial_self_evaluation )
-        cstate = 'self_evaluation';
-      else
-        cstate = 'iti';
-      end
+      cstate = 'iti';
       
       first_entry = true;
     end
@@ -1427,7 +1431,7 @@ while ( true )
       if ( STRUCTURE.require_key_press_to_exit_self_evaluation )
         self_eval_next_state = 'break_key_press_to_exit';
       else
-        self_eval_next_state = 'iti';
+        self_eval_next_state = 'choice_feedback';
       end
       
       first_entry = false;
@@ -1510,6 +1514,7 @@ while ( true )
     end
   end
   
+  %%  STATE break_key_press_to_exit
   if ( strcmp(cstate, 'break_key_press_to_exit') )
     if ( first_entry )
       first_entry = false;
@@ -1526,7 +1531,12 @@ while ( true )
     
     if ( drew_text && key_code(KbName('space')) )
       first_entry = true;
-      cstate = NEW_TRIAL_STATE;
+      
+      if ( STRUCTURE.is_trial_by_trial_self_evaluation )
+        cstate = 'choice_feedback';
+      else
+        cstate = NEW_TRIAL_STATE;
+      end
     end
   end
 end
