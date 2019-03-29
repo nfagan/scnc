@@ -7,6 +7,8 @@ function err = start(conf, task_func)
 %       - `err` (double, MException) -- 0 if successful; otherwise, the
 %         raised MException, if setup / run fails.
 
+ListenChar( 2 );
+
 if ( nargin < 1 || isempty(conf) )
   conf = scnc.config.load();
 else

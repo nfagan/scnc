@@ -51,6 +51,12 @@ catch err
   throw( err );
 end
 
+if ( STRUCTURE.is_randomized_frame_counts )
+  STRUCTURE.frame_count_index_sampler = get_frame_count_index_sampler( STRUCTURE );
+else
+  STRUCTURE.frame_count_index_sampler = [];
+end
+
 if ( opts.INTERFACE.use_auto_paths )
   data_path = fullfile( scnc.util.get_project_folder(), 'data' );
 else
@@ -95,6 +101,10 @@ switch ( STRUCTURE.task_type )
     image_info = get_side_bias_image_info( stimuli_p, opts.INTERFACE.is_debug );
   otherwise
     error( 'Unrecognized task type "%s".', task_type );
+end
+
+if ( STRUCTURE.is_trial_by_trial_self_evaluation )
+  image_info.self_evaluation = get_self_evaluation_images( stimuli_p );
 end
 
 %   STIMULI
@@ -162,6 +172,7 @@ opts.TIMER = TIMER;
 opts.SERIAL = SERIAL;
 opts.IMAGES = image_info;
 opts.SOUNDS = sounds;
+opts.STRUCTURE = STRUCTURE;
 opts.RAND = RAND;
 
 end
@@ -327,6 +338,16 @@ if ( strcmp(structure.task_type, 'rt') )
   validateattributes( structure.rt_n_two, {'double'}, {'even', 'scalar'}, 'rt_n_lr' );
 end
 
+if ( isfield(structure, 'is_randomized_frame_counts') && structure.is_randomized_frame_counts )
+  frame_counts = structure.n_star_frames;
+  frame_block_size = structure.frame_count_block_size;
+  
+  if ( mod(frame_block_size, numel(frame_counts)) ~= 0 )
+    error( 'Frame count block size must be a multiple of the number of frame counts (%d).' ...
+      , numel(frame_counts) );
+  end
+end
+
 end
 
 function fname = get_edf_filename(path, prefix)
@@ -339,5 +360,32 @@ while ( does_exist )
   does_exist = shared_utils.io.fexists( fullfile(path, fname) );
   stp = stp + 1;
 end
+
+end
+
+function frame_count_index_sampler = get_frame_count_index_sampler(structure)
+
+frame_counts = structure.n_star_frames;
+frame_block_size = structure.frame_count_block_size;
+n_blocks = 100;
+
+frame_count_index_sampler = scnc.util.BlockedConditionSampler( n_blocks, frame_block_size, numel(frame_counts) );
+
+end
+
+function images = get_self_evaluation_images(stimuli_p)
+
+full_stim_p = fullfile( stimuli_p, 'self-evaluation-images' );
+
+evaluation_filepaths = shared_utils.io.find( full_stim_p, {'.png', '.jpeg', '.jpg'} );
+
+is_confidence_level = cellfun( @(x) ~isempty(strfind(x, 'confidence-level')), evaluation_filepaths );
+
+assert( any(is_confidence_level), 'No confidence-level images found.' );
+
+confidence_level_filepath = evaluation_filepaths{find(is_confidence_level, 1)};
+
+images = struct();
+images.confidence_level = imread( confidence_level_filepath );
 
 end

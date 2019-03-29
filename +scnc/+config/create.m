@@ -60,7 +60,8 @@ INTERFACE.use_auto_paths = true;
 INTERFACE.use_key_responses = false;
 INTERFACE.debug_tags = 'all';
 INTERFACE.gui_fields.exclude = { 'stop_key', 'reward_key' ...
-  , 'left_response_key', 'right_response_key', 'debug_tags' };
+  , 'left_response_key', 'right_response_key', 'debug_tags', 'rating_keys' };
+INTERFACE.rating_keys = get_rating_key_codes_and_map( 4 );
 
 % STRUCTURE
 STRUCTURE = struct();
@@ -92,6 +93,10 @@ STRUCTURE.star_use_frame_count = false;
 STRUCTURE.side_bias_chest_direction = 'right';
 STRUCTURE.rt_forced_correct_target = false;
 STRUCTURE.require_key_press_to_exit_break = false;
+STRUCTURE.is_trial_by_trial_self_evaluation = false;
+STRUCTURE.is_randomized_frame_counts = false;
+STRUCTURE.frame_count_block_size = 30;
+STRUCTURE.require_key_press_to_exit_self_evaluation = false;
 
 %	SCREEN
 SCREEN = struct();
@@ -122,6 +127,7 @@ time_in.break_display_image = 30;
 time_in.cycle_break_image = 5;
 time_in.debug_stimuli_size = 100;
 time_in.break_key_press_to_exit = Inf;
+time_in.self_evaluation = Inf;
 
 TIMINGS.time_in = time_in;
 
@@ -188,6 +194,16 @@ STIMULI.setup.break_image1 = struct( ...
   , 'non_editable',     non_editable_properties ...
 );
 
+STIMULI.setup.confidence_level_image1 = struct( ...
+    'class',            'Image' ...
+  , 'size',             [ 400, 400 ] ...
+  , 'image_matrix',     [] ...
+  , 'color',            [ 255, 0, 0 ] ...
+  , 'placement',        'center' ...
+  , 'has_target',       false ...
+  , 'non_editable',     non_editable_properties ...
+);
+
 %	SERIAL
 SERIAL = struct();
 SERIAL.port = 'COM4';
@@ -216,5 +232,33 @@ conf.META = META;
 if ( do_save )
   scnc.config.save( conf );
 end
+
+end
+
+function rating_info = get_rating_key_codes_and_map(n_ratings)
+
+assert( n_ratings <= 10 );
+
+rating_codes = nan( 1, n_ratings );
+
+if ( ispc() )
+  rating_codes(1) = KbName( '~' );
+else
+  rating_codes(1) = KbName( '`~' );
+end
+
+key1_code = KbName( '1!' );
+
+key_code_rating_map = containers.Map( 'keytype', 'double', 'valuetype', 'double' );
+key_code_rating_map(rating_codes(1)) = 0;
+
+for i = 1:n_ratings-1
+  rating_codes(i+1) = key1_code + i - 1;
+  key_code_rating_map(rating_codes(i+1)) = i;
+end
+
+rating_info = struct();
+rating_info.key_codes = rating_codes;
+rating_info.key_code_rating_map = key_code_rating_map;
 
 end
