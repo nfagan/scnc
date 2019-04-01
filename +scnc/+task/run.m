@@ -1420,6 +1420,8 @@ while ( true )
       
       events.(cstate) = TIMER.get_time( 'task' );
       
+      cellfun( @(x) x.draw(), current_cues );
+      
       rating_key_codes = INTERFACE.rating_keys.key_codes;
       rating_key_map = INTERFACE.rating_keys.key_code_rating_map;
       
