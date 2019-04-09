@@ -28,6 +28,7 @@ end
 try
   KbName( 'UnifyKeyNames' );
   opts.INTERFACE.stop_key = KbName( 'escape' );
+  opts.INTERFACE.rating_keys = get_rating_key_codes_and_map( 4 );
 catch err
   warning( err.message );
 end
@@ -387,5 +388,29 @@ confidence_level_filepath = evaluation_filepaths{find(is_confidence_level, 1)};
 
 images = struct();
 images.confidence_level = imread( confidence_level_filepath );
+
+end
+
+function rating_info = get_rating_key_codes_and_map(n_ratings)
+
+assert( n_ratings <= 10 );
+
+rating_codes = nan( 1, n_ratings );
+
+rating_codes(1) = KbName( '`~' );
+
+key1_code = KbName( '1!' );
+
+key_code_rating_map = containers.Map( 'keytype', 'double', 'valuetype', 'double' );
+key_code_rating_map(rating_codes(1)) = 0;
+
+for i = 1:n_ratings-1
+  rating_codes(i+1) = key1_code + i - 1;
+  key_code_rating_map(rating_codes(i+1)) = i;
+end
+
+rating_info = struct();
+rating_info.key_codes = rating_codes;
+rating_info.key_code_rating_map = key_code_rating_map;
 
 end
