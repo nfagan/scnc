@@ -889,7 +889,7 @@ end
 
 function tf = is_checkbox_convertible(v)
 
-tf = isscalar( v ) && ( islogical(v) || ismember(v, [0, 1]) );
+tf = isscalar( v ) && ~isstruct(v) && ( islogical(v) || ismember(v, [0, 1]) );
 
 end
 

@@ -302,6 +302,8 @@ while ( true )
       DATA(tn).selected_direction = selected_direction;
       DATA(tn).selected_target_index = selected_target_index;
       DATA(tn).image_info = get_image_name_struct( current_images );
+      DATA(tn).n_star_frames = current_n_star_frames;
+      DATA(tn).confidence_level = confidence_level;
       
       last_was_correct = was_correct;
       last_block_n = BLOCK_NUMBER;
@@ -342,6 +344,7 @@ while ( true )
     selected_direction = '';
     selected_target_index = nan;
     was_correct = false;
+    confidence_level = [];
     
     events = structfun( @(x) nan, events, 'un', 0 );
     errors = structfun( @(x) false, errors, 'un', 0 );
@@ -354,7 +357,19 @@ while ( true )
     
     if ( should_increment_trial_block )
       TRIAL_BLOCK_INDEX = TRIAL_BLOCK_INDEX + 1;
+      
+      if ( STRUCTURE.is_randomized_frame_counts )
+        increment_condition_index( STRUCTURE.frame_count_index_sampler );
+      end
     end
+    
+    if ( STRUCTURE.is_randomized_frame_counts )
+      current_star_frame_index = current_condition( STRUCTURE.frame_count_index_sampler );
+    else
+      current_star_frame_index = 1;
+    end
+    
+    current_n_star_frames = STRUCTURE.n_star_frames(current_star_frame_index);
     
     if ( TRIAL_BLOCK_INDEX > opts.STRUCTURE.trial_block_size )
       BLOCK_NUMBER = BLOCK_NUMBER + 1;
@@ -793,11 +808,7 @@ while ( true )
           LOG_DEBUG( sprintf('chose: %d', i), 'event', opts );
           selected_target_index = direction_indices(i);
 
-          if ( STRUCTURE.show_feedback )
-            cstate = 'choice_feedback';
-          else
-            cstate = 'iti';
-          end
+          cstate = 'choice_feedback';
 
           events.target_acquired = TIMER.get_time( 'task' );
 
@@ -814,11 +825,7 @@ while ( true )
     ok_crit_met = ~isnan( selected_target_index );    
 
     if ( ok_crit_met || error_crit_met )
-      if ( STRUCTURE.show_feedback )
-        cstate = 'choice_feedback';
-      else
-        cstate = 'iti';
-      end
+      cstate = 'choice_feedback';
       
       first_entry = true;
       
@@ -916,11 +923,7 @@ while ( true )
     ok_crit_met = ~isnan( selected_target_index );    
 
     if ( ok_crit_met || error_crit_met )
-      if ( STRUCTURE.show_feedback )
-        cstate = 'choice_feedback';
-      else
-        cstate = 'iti';
-      end
+      cstate = 'choice_feedback';
       
       first_entry = true;
       
@@ -967,7 +970,6 @@ while ( true )
       end
       
       current_star_frame = 1;
-      n_star_frames = STRUCTURE.n_star_frames;
       
       logged_target_onset = false;
       
@@ -990,7 +992,7 @@ while ( true )
       end
     end
     
-    if ( current_star_frame <= n_star_frames )
+    if ( current_star_frame <= current_n_star_frames )
       cellfun( @(x) x.draw(), current_cues );
       Screen( 'flip', WINDOW.index );
       drew_stimulus = true;
@@ -1049,10 +1051,10 @@ while ( true )
           LOG_DEBUG( sprintf('chose: %d', i), 'event', opts );
           selected_target_index = direction_indices(i);
 
-          if ( STRUCTURE.show_feedback )
-            cstate = 'choice_feedback';
+          if ( STRUCTURE.is_trial_by_trial_self_evaluation )
+            cstate = 'self_evaluation';
           else
-            cstate = 'iti';
+            cstate = 'choice_feedback';
           end
 
           events.target_acquired = TIMER.get_time( 'task' );
@@ -1066,10 +1068,10 @@ while ( true )
     ok_crit_met = ~isnan( selected_target_index );    
 
     if ( ok_crit_met || error_crit_met )
-      if ( STRUCTURE.show_feedback )
-        cstate = 'choice_feedback';
+      if ( STRUCTURE.is_trial_by_trial_self_evaluation )
+        cstate = 'self_evaluation';
       else
-        cstate = 'iti';
+        cstate = 'choice_feedback';
       end
       
       first_entry = true;
@@ -1188,11 +1190,7 @@ while ( true )
           LOG_DEBUG( sprintf('chose: %d', i), 'event', opts );
           selected_target_index = direction_indices(i);
 
-          if ( STRUCTURE.show_feedback )
-            cstate = 'choice_feedback';
-          else
-            cstate = 'iti';
-          end
+          cstate = 'choice_feedback';
 
           events.target_acquired = TIMER.get_time( 'task' );
           break;
@@ -1205,11 +1203,7 @@ while ( true )
     ok_crit_met = ~isnan( selected_target_index );    
 
     if ( ok_crit_met || error_crit_met )
-      if ( STRUCTURE.show_feedback )
-        cstate = 'choice_feedback';
-      else
-        cstate = 'iti';
-      end
+      cstate = 'choice_feedback';
       
       first_entry = true;
       
@@ -1370,11 +1364,17 @@ while ( true )
         end
       end
       
+      show_feedback = STRUCTURE.show_feedback;
+      
+      if ( ~show_feedback )
+        TIMER.set_durations( 'choice_feedback', 0 );
+      end
+      
       drew_stimulus = false;
       first_entry = false;
     end
 
-    if ( ~drew_stimulus )
+    if ( show_feedback && ~drew_stimulus )
       if ( ~made_select )
         Screen( 'BlendFunction', WINDOW.index, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
       end
@@ -1408,24 +1408,46 @@ while ( true )
 
     if ( TIMER.duration_met(cstate) )
       cstate = 'iti';
+      
       first_entry = true;
     end
   end
   
-  %   STATE iti
-  if ( strcmp(cstate, 'iti') )
+  %%  STATE self_evaluation
+  if ( strcmp(cstate, 'self_evaluation') )
     if ( first_entry )
-      LOG_DEBUG( cstate, 'entry', opts );
       Screen( 'flip', WINDOW.index );
-      TIMER.reset_timers( cstate );
       
       events.(cstate) = TIMER.get_time( 'task' );
       
+      cellfun( @(x) x.draw(), current_cues );
+      
+      rating_key_codes = INTERFACE.rating_keys.key_codes;
+      rating_key_map = INTERFACE.rating_keys.key_code_rating_map;
+      
+      STIMULI.confidence_level_image1.image = IMAGES.self_evaluation.confidence_level;
+      draw( STIMULI.confidence_level_image1 );
+      
+      Screen( 'flip', WINDOW.index );
+      
+      if ( STRUCTURE.require_key_press_to_exit_self_evaluation )
+        self_eval_next_state = 'break_key_press_to_exit';
+      else
+        self_eval_next_state = 'choice_feedback';
+      end
+      
       first_entry = false;
     end
-
+    
+    confidence_level = get_confidence_level_from_key_press_or_null( rating_key_codes, rating_key_map );
+    
+    if ( ~isempty(confidence_level) )
+      cstate = self_eval_next_state;
+      first_entry = true;
+    end
+    
     if ( TIMER.duration_met(cstate) )
-      cstate = NEW_TRIAL_STATE;
+      cstate = self_eval_next_state;
       first_entry = true;
     end
   end
@@ -1494,6 +1516,7 @@ while ( true )
     end
   end
   
+  %%  STATE break_key_press_to_exit
   if ( strcmp(cstate, 'break_key_press_to_exit') )
     if ( first_entry )
       first_entry = false;
@@ -1510,7 +1533,12 @@ while ( true )
     
     if ( drew_text && key_code(KbName('space')) )
       first_entry = true;
-      cstate = NEW_TRIAL_STATE;
+      
+      if ( STRUCTURE.is_trial_by_trial_self_evaluation )
+        cstate = 'choice_feedback';
+      else
+        cstate = NEW_TRIAL_STATE;
+      end
     end
   end
 end
@@ -2143,5 +2171,21 @@ LOG_DEBUG( sprintf('N SELECTED:    %d', PERFORMANCE.n_selected), 'performance', 
 LOG_DEBUG( sprintf('N UNSELECTED:  %d', PERFORMANCE.n_unselected), 'performance', opts );
 LOG_DEBUG( sprintf('ONE_STAR_RT:   %0.3f', PERFORMANCE.one_star_rt), 'performance', opts );
 LOG_DEBUG( sprintf('TWO_STAR_RT:   %0.3f', PERFORMANCE.two_star_rt), 'performance', opts );
+
+end
+
+function response = get_confidence_level_from_key_press_or_null(key_codes, key_code_map)
+
+key_state = ptb.util.are_keys_down( key_codes );
+
+first_down = find( key_state, 1 );
+
+if ( isempty(first_down) )
+  response = [];
+  return
+end
+
+response_key = key_codes(first_down);
+response = key_code_map(response_key);
 
 end
