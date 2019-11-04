@@ -69,7 +69,7 @@ left_image_name = image_info.left_cue_image_name;
 right_image_name = image_info.right_cue_image_name;
 
 is_masked = structure.is_masked;
-task_type = structure.task_type;
+task_type = field_or( structure, 'task_type', 'c-nc' );
 use_frame_count = field_or( structure, 'star_use_frame_count', false );
 should_update_frame_count = true;
 
