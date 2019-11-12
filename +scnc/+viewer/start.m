@@ -118,7 +118,7 @@ for i = 1:numel(stim_names)
   
   if ( isfield(stim_schema, 'shift') )
     shift = stim_schema.shift;
-    amount_shift = get_normalized_value( ptb.WindowDependent(shift), original_window );
+    amount_shift = as_normalized( ptb.WindowDependent(shift), original_window );
     pos.Value = pos.Value + amount_shift;
   end
   
