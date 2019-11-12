@@ -113,12 +113,12 @@ for i = 1:numel(stim_names)
   
   color = set( ptb.Color(), stim_schema.color );
   
-  pos = ptb.Transform( pos, 'normalized' );
-  scl = ptb.Transform( stim_schema.size, 'px' );
+  pos = ptb.WindowDependent( pos, 'normalized' );
+  scl = ptb.WindowDependent( stim_schema.size, 'px' );
   
   if ( isfield(stim_schema, 'shift') )
     shift = stim_schema.shift;
-    amount_shift = get_normalized_value( ptb.Transform(shift), original_window );
+    amount_shift = get_normalized_value( ptb.WindowDependent(shift), original_window );
     pos.Value = pos.Value + amount_shift;
   end
   
