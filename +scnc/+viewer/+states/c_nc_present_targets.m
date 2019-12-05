@@ -91,7 +91,12 @@ if ( strcmp(task_type, 'c-nc') )
     end
   end
 elseif ( strcmp(task_type, 'rt') )
-  mask_time_elapsed = check_should_escape( opts, data, 'mask_onset' );
+  if ( use_frame_count )
+    mask_time_elapsed = state.UserData.n_cue_frames == structure.n_star_frames;
+  else
+    mask_time_elapsed = check_should_escape( opts, data, 'mask_onset' );
+  end
+  
   response_target_onset_elaped = check_should_escape( opts, data, 'rt_target_onset' );
   
   if ( response_target_onset_elaped )
@@ -101,6 +106,7 @@ elseif ( strcmp(task_type, 'rt') )
   elseif ( mask_time_elapsed )
     left_image_name = 'two_masks__left.png';
     right_image_name = 'two_masks__right.png';
+    should_update_frame_count = false;
   end
 else
   error( 'Unimplemented task type: "%s".', task_type );
