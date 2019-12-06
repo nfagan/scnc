@@ -123,6 +123,7 @@ try
   stimuli.left_image1.FaceColor = left_image;
   stimuli.right_image1.FaceColor = right_image;
 catch err
+  warning( err.message );
   %
 end
 
@@ -133,7 +134,14 @@ end
 function [left, right] = get_rt_response_target_image_names(trial_data)
 
 direction = trial_data.direction;
-correct_direction = char( setdiff({'left', 'right'}, direction) );
+
+if ( strcmp(direction, 'two') )
+  correct_direction = trial_data.rt_correct_direction;
+else
+  correct_direction = char( setdiff({'left', 'right'}, direction) );
+end
+
+% correct_direction = char( setdiff({'left', 'right'}, direction) );
 
 left = sprintf( '%s_mask2__left.png', correct_direction );
 right = sprintf( '%s_mask2__right.png', correct_direction );
