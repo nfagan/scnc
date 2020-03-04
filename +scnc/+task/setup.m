@@ -165,6 +165,10 @@ else
   RAND.state = [];
 end
 
+%   gif rewards
+STRUCTURE.gif_updater = scnc.util.GIFUpdater( 1/24 );
+gif_images = load_gif_images( fullfile(stimuli_p, 'gif-reward-images'), WINDOW.index );
+
 %   EXPORT
 opts.STIMULI = STIMULI;
 opts.WINDOW = WINDOW;
@@ -172,6 +176,7 @@ opts.TRACKER = TRACKER;
 opts.TIMER = TIMER;
 opts.SERIAL = SERIAL;
 opts.IMAGES = image_info;
+opts.GIF_IMAGES = struct( 'images', {gif_images} );
 opts.SOUNDS = sounds;
 opts.STRUCTURE = STRUCTURE;
 opts.RAND = RAND;
@@ -211,13 +216,10 @@ end
 function sound_info = get_sound(p)
 
 files = shared_utils.io.find( p, {'.wav', '.mp3'} );
-
 assert( numel(files) > 0, 'No sound files found in: "%s".', p );
 
 file = files{1};
-
 [read_sound, fs] = audioread( file );
-
 sound_info = struct( 'sound', read_sound, 'fs', fs );
 
 end
@@ -388,6 +390,55 @@ confidence_level_filepath = evaluation_filepaths{find(is_confidence_level, 1)};
 
 images = struct();
 images.confidence_level = imread( confidence_level_filepath );
+
+end
+
+function images = load_gif_images(stimuli_p, window)
+
+image_files = shared_utils.io.find( stimuli_p, '.gif' );
+images = cell( numel(image_files), 1 );
+success = true( size(image_files) );
+
+for i = 1:numel(image_files)
+  fprintf( '\n Loading file "%s" (%d of %d).' ...
+    , image_files{i}, i, numel(image_files) );
+  
+  try
+    [frames, cmap] = imread( image_files{i}, 'frames', 'all' );
+    frames_cell = cell( 1, size(frames, 4) );
+    
+    for j = 1:size(frames, 4)
+      mat = im_remap( squeeze(frames(:, :, :, j)), cmap );
+      frames_cell{j} = Screen( 'MakeTexture', window, mat );
+    end
+    
+    images{i} = scnc.util.GIF( frames_cell );
+  catch err
+    warning( err.message );
+    success(i) = false;
+  end
+end
+
+images = images(success);
+
+end
+
+function remapped = im_remap(im, cmap)
+
+if ( size(im, 3) ~= 1 )
+  remapped = im;
+  return
+end
+
+remapped = zeros( size(im, 1), size(im, 2), 3, 'uint8' );
+
+for i = 1:3
+  for j = 1:size(im, 1)
+    for k = 1:size(im, 2)
+      remapped(j, k, i) = cmap(im(j, k)+1, i) * 255;
+    end
+  end
+end
 
 end
 

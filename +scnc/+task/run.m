@@ -13,6 +13,7 @@ TRACKER =     opts.TRACKER;
 WINDOW =      opts.WINDOW;
 STRUCTURE =   opts.STRUCTURE;
 IMAGES =      opts.IMAGES;
+GIF_IMAGES =  opts.GIF_IMAGES;
 SOUNDS =      opts.SOUNDS;
 REWARDS =     opts.REWARDS;
 comm =        opts.SERIAL.comm;
@@ -1365,44 +1366,77 @@ while ( true )
       end
       
       show_feedback = STRUCTURE.show_feedback;
+      use_gif_rewards = STRUCTURE.use_gif_rewards;
+      gif_image_sets = GIF_IMAGES.images;
+      
+      if ( ~isempty(gif_image_sets) )
+        gif_image_set = gif_image_sets{randi(numel(gif_image_sets))};
+      else
+        gif_image_set = [];
+      end
       
       if ( ~show_feedback )
         TIMER.set_durations( 'choice_feedback', 0 );
       end
       
+      if ( use_gif_rewards )
+        gif_updater = STRUCTURE.gif_updater;
+        gif_reward_image = STIMULI.gif_reward_image;
+        reset( gif_updater );
+      end
+      
+      logged_feedback_onset_time = false;
       drew_stimulus = false;
       first_entry = false;
     end
 
-    if ( show_feedback && ~drew_stimulus )
-      if ( ~made_select )
-        Screen( 'BlendFunction', WINDOW.index, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-      end
+    if ( use_gif_rewards )
+      should_display_gif_frame = update( gif_updater );
       
-      cellfun( @(x) x.draw(), current_stimuli );
-      
-      if ( ~made_select )
-        mask_color = [ STIMULI.setup.no_choice_indicator.color, 125 ];
-        
-        if ( STIMULI.setup.no_choice_indicator.visible )
-          Screen( 'FillRect', WINDOW.index, mask_color ...
-            , current_stimuli{use_correct_image_index}.vertices );
-          fprintf( '\n Drawing ... ' );
+      if ( should_display_gif_frame )
+        if ( ~isempty(gif_image_set) )
+          tex_handle = next_frame( gif_image_set );
+          
+          Screen( 'DrawTexture', WINDOW.index, tex_handle, [], gif_reward_image.vertices );
+          Screen( 'flip', WINDOW.index );
         end
       end
-      
-      Screen( 'flip', WINDOW.index );
-      
-      if ( ~made_select )
-        Screen( 'BlendFunction', WINDOW.index, GL_ONE, GL_ZERO );
+      if ( ~logged_feedback_onset_time )
+        events.feedback_onset = TIMER.get_time( 'task' );
+        logged_feedback_onset_time = true;
       end
       
-      drew_stimulus = true;
-      
-      events.feedback_onset = TIMER.get_time( 'task' );
-      
-      if ( made_select && INTERFACE.use_sounds )
-        sound( current_sound.sound, current_sound.fs );
+    else
+      if ( show_feedback && ~drew_stimulus )
+        if ( ~made_select )
+          Screen( 'BlendFunction', WINDOW.index, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+        end
+
+        cellfun( @(x) x.draw(), current_stimuli );
+
+        if ( ~made_select )
+          mask_color = [ STIMULI.setup.no_choice_indicator.color, 125 ];
+
+          if ( STIMULI.setup.no_choice_indicator.visible )
+            Screen( 'FillRect', WINDOW.index, mask_color ...
+              , current_stimuli{use_correct_image_index}.vertices );
+            fprintf( '\n Drawing ... ' );
+          end
+        end
+
+        Screen( 'flip', WINDOW.index );
+
+        if ( ~made_select )
+          Screen( 'BlendFunction', WINDOW.index, GL_ONE, GL_ZERO );
+        end
+
+        drew_stimulus = true;
+
+        events.feedback_onset = TIMER.get_time( 'task' );
+
+        if ( made_select && INTERFACE.use_sounds )
+          sound( current_sound.sound, current_sound.fs );
+        end
       end
     end
 
