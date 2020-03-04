@@ -395,6 +395,12 @@ end
 
 function images = load_gif_images(stimuli_p, window)
 
+if ( ~shared_utils.io.dexists(stimuli_p) )
+  warning( 'GIF image path "%s" does not exist.', stimuli_p )
+  images = {};
+  return
+end
+
 image_files = shared_utils.io.find( stimuli_p, '.gif' );
 images = cell( numel(image_files), 1 );
 success = true( size(image_files) );

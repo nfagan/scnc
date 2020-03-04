@@ -1391,21 +1391,25 @@ while ( true )
     end
 
     if ( use_gif_rewards )
-      should_display_gif_frame = update( gif_updater );
-      
-      if ( should_display_gif_frame )
-        if ( ~isempty(gif_image_set) )
-          tex_handle = next_frame( gif_image_set );
-          
-          Screen( 'DrawTexture', WINDOW.index, tex_handle, [], gif_reward_image.vertices );
-          Screen( 'flip', WINDOW.index );
+      if ( was_correct )
+        should_display_gif_frame = update( gif_updater );
+
+        if ( should_display_gif_frame )
+          if ( ~isempty(gif_image_set) )
+            tex_handle = next_frame( gif_image_set );
+
+            Screen( 'DrawTexture', WINDOW.index, tex_handle, [], gif_reward_image.vertices );
+            Screen( 'flip', WINDOW.index );
+          end
         end
+      else
+        cellfun( @(x) x.draw(), current_stimuli );
+        Screen( 'flip', WINDOW.index );
       end
       if ( ~logged_feedback_onset_time )
         events.feedback_onset = TIMER.get_time( 'task' );
         logged_feedback_onset_time = true;
       end
-      
     else
       if ( show_feedback && ~drew_stimulus )
         if ( ~made_select )
