@@ -1396,9 +1396,19 @@ while ( true )
 
         if ( should_display_gif_frame )
           if ( ~isempty(gif_image_set) )
+            correct_img = current_stimuli{correct_image_index};
+            [cx, cy] = RectCenterd( correct_img.vertices );
+            amt_shift = STIMULI.setup.gif_reward_image.shift;
+            
+            if ( ~isempty(amt_shift) )
+              cx = cx + amt_shift(1);
+              cy = cy + amt_shift(2);
+            end
+            
+            new_verts = CenterRectOnPointd( gif_reward_image.vertices, cx, cy );
             tex_handle = next_frame( gif_image_set );
 
-            Screen( 'DrawTexture', WINDOW.index, tex_handle, [], gif_reward_image.vertices );
+            Screen( 'DrawTexture', WINDOW.index, tex_handle, [], new_verts );
             Screen( 'flip', WINDOW.index );
           end
         end
