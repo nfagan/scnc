@@ -1409,6 +1409,7 @@ while ( true )
             tex_handle = next_frame( gif_image_set );
 
             Screen( 'DrawTexture', WINDOW.index, tex_handle, [], new_verts );
+            cellfun( @(x) x.draw(), current_stimuli );
             Screen( 'flip', WINDOW.index );
           end
         end
