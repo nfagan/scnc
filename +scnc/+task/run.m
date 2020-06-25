@@ -1387,10 +1387,15 @@ while ( true )
       
       logged_feedback_onset_time = false;
       drew_stimulus = false;
+      played_feedback_sound = false;
       first_entry = false;
     end
 
     if ( use_gif_rewards )
+      if ( made_select && INTERFACE.use_sounds && ~played_feedback_sound )
+        sound( current_sound.sound, current_sound.fs );
+        played_feedback_sound = true;
+      end
       if ( was_correct )
         should_display_gif_frame = update( gif_updater );
 
